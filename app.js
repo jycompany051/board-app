@@ -97,6 +97,7 @@ async function initDb() {
       author_name TEXT,
       edit_password_hash TEXT,
       checked_by_admin BOOLEAN NOT NULL DEFAULT FALSE,
+      is_notice BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -118,6 +119,7 @@ async function initDb() {
   await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS author_name TEXT`);
   await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS edit_password_hash TEXT`);
   await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS checked_by_admin BOOLEAN NOT NULL DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_notice BOOLEAN NOT NULL DEFAULT FALSE`);
 
   await pool.query(`
     UPDATE posts
@@ -150,8 +152,14 @@ async function initDb() {
   `);
 
   await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_posts_created_id
-    ON posts (id DESC)
+    UPDATE posts
+    SET is_notice = FALSE
+    WHERE is_notice IS NULL
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_posts_notice_id
+    ON posts (is_notice DESC, id DESC)
   `);
 
   await pool.query(`
@@ -248,6 +256,7 @@ async function startServer() {
           p.author_name,
           p.created_at,
           p.checked_by_admin,
+          p.is_notice,
           (
             SELECT COUNT(*)::int
             FROM comments c1
@@ -256,14 +265,13 @@ async function startServer() {
           ) AS comment_count
         FROM posts p
         ${whereSql}
-        ORDER BY p.id DESC
+        ORDER BY p.is_notice DESC, p.id DESC
         LIMIT $${limitIndex} OFFSET $${offsetIndex}
         `,
         listParams
       );
 
       const postIds = result.rows.map((post) => post.id);
-
       let replyPreviewMap = new Map();
 
       if (postIds.length > 0) {
@@ -281,8 +289,6 @@ async function startServer() {
           `,
           [postIds]
         );
-
-        replyPreviewMap = new Map();
 
         for (const reply of replyPreviewResult.rows) {
           if (!replyPreviewMap.has(reply.post_id)) {
@@ -375,6 +381,7 @@ async function startServer() {
 
       const safeTitle = String(title || "").trim();
       const safeContentHtml = String(content || "").trim();
+      const isNotice = req.session.admin && req.body.is_notice === "on";
 
       if (!safeTitle || !safeContentHtml) {
         return res.render("write", {
@@ -405,15 +412,16 @@ async function startServer() {
       const plainTextContent = stripHtml(safeContentHtml);
 
       await pool.query(
-        `INSERT INTO posts (title, content, content_html, author_name, edit_password_hash, checked_by_admin)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+        `INSERT INTO posts (title, content, content_html, author_name, edit_password_hash, checked_by_admin, is_notice)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
           safeTitle,
           plainTextContent,
           safeContentHtml,
           safeAuthor,
           passwordHash,
-          req.session.admin ? true : false
+          req.session.admin ? true : false,
+          isNotice
         ]
       );
 
