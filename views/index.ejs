@@ -71,7 +71,13 @@
 
           <% posts.forEach(post => { %>
             <tr>
-              <td><%= post.id %></td>
+              <td>
+                <% if (post.is_notice) { %>
+                  &lt;공지&gt;
+                <% } else { %>
+                  <%= post.id %>
+                <% } %>
+              </td>
 
               <td class="title-cell">
                 <a href="/post/<%= post.id %>" class="title-link">
