@@ -59,6 +59,66 @@
 
   </div>
 
+  <div class="detail-card comment-section">
+    <h2 class="detail-title">댓글</h2>
+
+    <% if (admin) { %>
+      <form action="/comment/<%= post.id %>" method="POST" class="comment-form">
+        <textarea name="content" placeholder="댓글을 입력하세요" required></textarea>
+
+        <div class="bottom-btns">
+          <button type="submit" class="btn">댓글 등록</button>
+        </div>
+      </form>
+    <% } %>
+
+    <% if (comments && comments.length > 0) { %>
+      <% comments.forEach(function(comment) { %>
+        <div class="comment-card">
+          <div class="comment-meta">
+            <span>작성자: <%= comment.author_name %></span>
+            <span>등록일: <%= new Date(comment.created_at).toLocaleString("ko-KR") %></span>
+          </div>
+
+          <div class="comment-body">
+            <%= comment.content %>
+          </div>
+
+          <% if (admin) { %>
+            <form action="/reply/<%= post.id %>/<%= comment.id %>" method="POST" class="reply-form">
+              <textarea name="content" placeholder="답글을 입력하세요" required></textarea>
+
+              <div class="bottom-btns">
+                <button type="submit" class="btn">답글 등록</button>
+              </div>
+            </form>
+          <% } %>
+
+          <% const replies = replyMap.get(comment.id) || []; %>
+          <% if (replies.length > 0) { %>
+            <div class="reply-list">
+              <% replies.forEach(function(reply) { %>
+                <div class="reply-card">
+                  <div class="reply-title-line">
+                    <strong><%= reply.author_name %></strong>
+                    ·
+                    <span><%= new Date(reply.created_at).toLocaleString("ko-KR") %></span>
+                  </div>
+
+                  <div class="comment-body">
+                    <%= reply.content %>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <div class="empty-box">등록된 댓글이 없습니다.</div>
+    <% } %>
+  </div>
+
 </div>
 
 <% if (admin) { %>
