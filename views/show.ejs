@@ -2,55 +2,117 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><%= post.title %></title>
 <link rel="stylesheet" href="/public/style.css">
 </head>
 <body>
 
-<div class="top-bar">
-  <% if (admin) { %>
-    <span>관리자 로그인 상태</span>
-    <a href="/change-password" class="btn">비밀번호 변경</a>
-    <form action="/logout" method="POST" style="display:inline;">
-      <button class="btn logout">로그아웃</button>
-    </form>
-  <% } %>
-</div>
-
-<div class="container">
-
-  <h2><%= post.title %></h2>
-
-  <div class="meta">
-    작성자: <%= post.author_name %> |
-    등록일: <%= new Date(post.created_at).toLocaleString() %>
-  </div>
-
-  <div class="content">
-    <%- post.content_html %>
-  </div>
-
-  <div class="bottom-btns">
-    <a href="/" class="btn">목록</a>
-    <a href="/edit/<%= post.id %>" class="btn">수정</a>
-
+<div class="page narrow">
+  <div class="top-actions top-actions-right">
     <% if (admin) { %>
-      <form action="/delete/<%= post.id %>" method="POST">
-        <button class="btn delete">삭제</button>
+      <span class="admin-status">관리자 로그인 상태</span>
+      <a href="/change-password" class="btn">비밀번호 변경</a>
+      <form action="/logout" method="POST" class="inline-form">
+        <button type="submit" class="btn logout">로그아웃</button>
       </form>
+    <% } else { %>
+      <a href="/login" class="btn">관리자 로그인</a>
     <% } %>
   </div>
 
-  <% if (admin) { %>
-  <div class="comment-box">
-    <form action="/comment/<%= post.id %>" method="POST">
-      <textarea name="content" placeholder="댓글 작성"></textarea>
-      <button class="btn">댓글</button>
-    </form>
+  <div class="page-title-wrap">
+    <h1 class="page-title">상담문의</h1>
   </div>
-  <% } %>
 
+  <div class="detail-card">
+    <div class="detail-header-line"></div>
+
+    <h2 class="detail-title"><%= post.title %></h2>
+
+    <div class="detail-meta">
+      <span>작성자: <%= post.author_name %></span>
+      <span>등록일: <%= new Date(post.created_at).toLocaleString("ko-KR") %></span>
+    </div>
+
+    <div class="detail-content"><%- post.content_html %></div>
+
+    <div class="bottom-btns">
+      <a href="/" class="btn cancel">목록</a>
+
+      <% if (!admin) { %>
+        <a href="/edit/<%= post.id %>" class="btn">수정</a>
+      <% } %>
+
+      <% if (admin) { %>
+        <form action="/delete/<%= post.id %>" method="POST" class="inline-form">
+          <button type="submit" class="btn delete">삭제</button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="comment-section">
+    <h3>댓글</h3>
+
+    <% if (admin) { %>
+      <form action="/comment/<%= post.id %>" method="POST" class="comment-form">
+        <textarea name="content" placeholder="댓글 내용을 입력하세요" required></textarea>
+        <div class="bottom-btns">
+          <button type="submit" class="btn">댓글 등록</button>
+        </div>
+      </form>
+    <% } %>
+
+    <% if (comments.length === 0) { %>
+      <div class="empty-box">등록된 댓글이 없습니다.</div>
+    <% } %>
+
+    <% comments.forEach(comment => { %>
+      <div class="comment-card">
+        <div class="comment-meta">
+          <strong><%= comment.author_name %></strong>
+          <span><%= new Date(comment.created_at).toLocaleString("ko-KR") %></span>
+        </div>
+
+        <div class="comment-body"><%= comment.content %></div>
+
+        <% if (admin) { %>
+          <form action="/reply/<%= post.id %>/<%= comment.id %>" method="POST" class="reply-form">
+            <div class="reply-label">답글 제목: <strong><%= post.title %></strong></div>
+            <textarea name="content" placeholder="답글 내용을 입력하세요" required></textarea>
+            <div class="bottom-btns">
+              <button type="submit" class="btn">답글 등록</button>
+            </div>
+          </form>
+        <% } %>
+
+        <% if (replyMap.get(comment.id)) { %>
+          <div class="reply-list">
+            <% replyMap.get(comment.id).forEach(reply => { %>
+              <div class="reply-card">
+                <div class="comment-meta">
+                  <strong><%= reply.author_name %></strong>
+                  <span><%= new Date(reply.created_at).toLocaleString("ko-KR") %></span>
+                </div>
+                <div class="reply-title-line">답글 제목: <strong><%= post.title %></strong></div>
+                <div class="comment-body"><%= reply.content %></div>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
 </div>
+
+<% if (admin) { %>
+<script>
+window.addEventListener("beforeunload", () => {
+  try { navigator.sendBeacon("/logout-beacon"); } catch(e) {}
+});
+</script>
+<% } %>
 
 </body>
 </html>
