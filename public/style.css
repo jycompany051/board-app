@@ -75,13 +75,20 @@ body {
   margin-bottom: 16px;
 }
 
+.list-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  justify-content: flex-end;
+}
+
 .search-form {
   display: flex;
   gap: 10px;
   align-items: center;
   width: 100%;
   max-width: 540px;
-  margin-left: auto;
 }
 
 .search-input {
@@ -89,13 +96,20 @@ body {
   flex: 1;
 }
 
-.search-btn {
+.search-btn,
+.write-btn {
   white-space: nowrap;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
 }
 
 .board-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 640px;
 }
 
 .board-table th,
@@ -112,6 +126,7 @@ body {
 
 .title-cell {
   text-align: left;
+  word-break: break-word;
 }
 
 .title-link {
@@ -294,6 +309,7 @@ textarea {
   color: #61766a;
   line-height: 1.6;
   font-size: 14px;
+  word-break: break-word;
 }
 
 .reply-preview-prefix {
@@ -331,6 +347,10 @@ textarea {
 }
 
 @media (max-width: 700px) {
+  .page {
+    padding: 14px;
+  }
+
   .page-title {
     font-size: 30px;
   }
@@ -338,10 +358,26 @@ textarea {
   .top-actions,
   .bottom-btns,
   .list-top,
+  .list-top-actions,
   .search-form,
   .pagination {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .search-form {
+    max-width: 100%;
+  }
+
+  .search-btn,
+  .write-btn,
+  .page-link,
+  .btn {
+    text-align: center;
+  }
+
+  .board-table {
+    min-width: 560px;
   }
 
   .board-table th,
@@ -350,7 +386,16 @@ textarea {
     padding: 10px 6px;
   }
 
-  .page-link {
-    text-align: center;
+  .reply-preview-item {
+    font-size: 13px;
+  }
+
+  .list-card,
+  .detail-card,
+  .form-card,
+  .login-card,
+  .comment-card,
+  .reply-card {
+    padding: 18px;
   }
 }
