@@ -33,7 +33,7 @@
       <input type="password" name="edit_password" placeholder="작성 시 입력한 수정 비밀번호" required />
 
       <label class="label">내용</label>
-      <div id="editor"><%- post.content %></div>
+      <div id="editor"><%- post.content_html || post.content || '' %></div>
       <input type="hidden" name="content" id="contentInput" />
 
       <button type="submit" class="btn primary full">수정 저장</button>
