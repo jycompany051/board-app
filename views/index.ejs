@@ -2,100 +2,41 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>상담 후기글</title>
 <link rel="stylesheet" href="/public/style.css">
 </head>
 <body>
 
-<div class="page">
+<h1>상담 후기글</h1>
 
-  <div class="top-actions top-actions-right">
-    <% if (admin) { %>
-      <span class="admin-status">관리자 로그인 상태</span>
+<div style="text-align:right;">
+  <% if (admin) { %>
+    <span>관리자 로그인 상태</span>
+    <form action="/logout" method="POST" style="display:inline;">
+      <button>로그아웃</button>
+    </form>
+  <% } else { %>
+    <a href="/login">관리자 로그인</a>
+  <% } %>
 
-      <a href="/change-password" class="btn">비밀번호 변경</a>
-
-      <form action="/logout" method="POST" class="inline-form">
-        <button type="submit" class="btn logout">로그아웃</button>
-      </form>
-
-    <% } else { %>
-      <a href="/login" class="btn">관리자 로그인</a>
-    <% } %>
-  </div>
-
-  <div class="page-title-wrap">
-    <h1 class="page-title">상담 후기글</h1>
-    <p class="page-desc">상담 관련 글을 확인할 수 있는 게시판입니다.</p>
-  </div>
-
-  <div class="list-card">
-
-    <div class="list-top">
-      <span>전체 : <%= posts.length %></span>
-      <a href="/write" class="btn">글쓰기</a>
-    </div>
-
-    <table class="board-table">
-      <thead>
-        <tr>
-          <th>번호</th>
-          <th>제목</th>
-          <th>작성자</th>
-          <th>등록일</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        <% posts.forEach(post => { %>
-          <tr>
-            <td><%= post.id %></td>
-
-            <td class="title-cell">
-              <a href="/post/<%= post.id %>" class="title-link">
-                <%= post.title %>
-              </a>
-            </td>
-
-            <td><%= post.author_name %></td>
-
-            <td>
-              <%= new Date(post.created_at).toLocaleDateString("ko-KR") %>
-            </td>
-          </tr>
-        <% }) %>
-      </tbody>
-    </table>
-
-  </div>
+  <a href="/write">글쓰기</a>
 </div>
 
-<% if (admin) { %>
-<script>
-(function () {
-  let allowNavigation = false;
+<table>
+<tr>
+<th>번호</th>
+<th>제목</th>
+<th>작성자</th>
+</tr>
 
-  document.addEventListener("click", function (e) {
-    const link = e.target.closest("a");
-    const button = e.target.closest("button");
-    const form = e.target.closest("form");
+<% posts.forEach((p, i) => { %>
+<tr>
+<td><%= posts.length - i %></td>
+<td><a href="/post/<%= p.id %>"><%= p.title %></a></td>
+<td><%= p.author_name %></td>
+</tr>
+<% }) %>
 
-    if (link || form || button) {
-      allowNavigation = true;
-    }
-  });
-
-  window.addEventListener("beforeunload", function () {
-    if (!allowNavigation) {
-      try {
-        navigator.sendBeacon("/logout-beacon");
-      } catch (e) {}
-    }
-  });
-})();
-</script>
-<% } %>
+</table>
 
 </body>
 </html>
