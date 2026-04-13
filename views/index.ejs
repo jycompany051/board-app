@@ -9,21 +9,25 @@
 <body>
   <div class="page">
     <header class="hero simple">
-      <h1>상담 후기글</h1>
-      <p>차분한 분위기에서 글을 읽고 남길 수 있는 공간입니다.</p>
+      <div class="top-bar">
+        <div class="top-bar-left">
+          <h1>상담 후기글</h1>
+          <p>차분한 분위기에서 글을 읽고 남길 수 있는 공간입니다.</p>
+        </div>
 
-      <div class="hero-actions">
-        <a class="btn primary" href="/write">글쓰기</a>
+        <div class="top-bar-right">
+          <% if (admin) { %>
+            <a class="btn" href="/change-password">비밀번호 변경</a>
 
-        <% if (admin) { %>
-          <a class="btn" href="/change-password">비밀번호 변경</a>
+            <form method="post" action="/logout" class="inline-form">
+              <button type="submit" class="btn danger">로그아웃</button>
+            </form>
+          <% } else { %>
+            <a class="btn" href="/login">관리자 로그인</a>
+          <% } %>
 
-          <form method="post" action="/logout" class="inline-form">
-            <button type="submit" class="btn danger">로그아웃</button>
-          </form>
-        <% } else { %>
-          <a class="btn" href="/login">관리자 로그인</a>
-        <% } %>
+          <a class="btn primary" href="/write">글쓰기</a>
+        </div>
       </div>
     </header>
 
@@ -47,7 +51,7 @@
               </div>
             </div>
 
-            <div class="review-content"><%- post.content %></div>
+            <div class="review-content"><%- post.content_html || post.content || '' %></div>
 
             <div class="review-foot">
               <span><%= new Date(post.created_at).toLocaleString("ko-KR") %></span>
