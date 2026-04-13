@@ -35,73 +35,79 @@
     <div class="list-top">
       <span>전체 : <%= totalCount %></span>
 
-      <form action="/" method="GET" class="search-form">
-        <input
-          type="text"
-          name="q"
-          value="<%= q || '' %>"
-          placeholder="검색어"
-          class="search-input"
-        >
-        <button type="submit" class="btn search-btn">검색하기</button>
-      </form>
+      <div class="list-top-actions">
+        <form action="/" method="GET" class="search-form">
+          <input
+            type="text"
+            name="q"
+            value="<%= q || '' %>"
+            placeholder="검색어"
+            class="search-input"
+          >
+          <button type="submit" class="btn search-btn">검색하기</button>
+        </form>
+
+        <a href="/write" class="btn write-btn">글쓰기</a>
+      </div>
     </div>
 
-    <table class="board-table">
-      <thead>
-        <tr>
-          <th>번호</th>
-          <th>제목</th>
-          <th>작성자</th>
-          <th>등록일</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        <% if (posts.length === 0) { %>
+    <div class="table-wrap">
+      <table class="board-table">
+        <thead>
           <tr>
-            <td colspan="4" class="empty-cell">등록된 글이 없습니다.</td>
+            <th>번호</th>
+            <th>제목</th>
+            <th>작성자</th>
+            <th>등록일</th>
           </tr>
-        <% } %>
+        </thead>
 
-        <% posts.forEach(post => { %>
-          <tr>
-            <td><%= post.id %></td>
+        <tbody>
+          <% if (posts.length === 0) { %>
+            <tr>
+              <td colspan="4" class="empty-cell">등록된 글이 없습니다.</td>
+            </tr>
+          <% } %>
 
-            <td class="title-cell">
-              <a href="/post/<%= post.id %>" class="title-link">
-                <%= post.title %>
-              </a>
+          <% posts.forEach(post => { %>
+            <tr>
+              <td><%= post.id %></td>
 
-              <% if (!post.checked_by_admin) { %>
-                <span class="new-badge">NEW</span>
-              <% } %>
+              <td class="title-cell">
+                <a href="/post/<%= post.id %>" class="title-link">
+                  <%= post.title %>
+                </a>
 
-              <% if (post.comment_count > 0) { %>
-                <span class="comment-count">[댓글 <%= post.comment_count %>]</span>
-              <% } %>
+                <% if (!post.checked_by_admin) { %>
+                  <span class="new-badge">NEW</span>
+                <% } %>
 
-              <% if (post.reply_previews && post.reply_previews.length > 0) { %>
-                <div class="reply-preview-list">
-                  <% post.reply_previews.forEach(reply => { %>
-                    <div class="reply-preview-item">
-                      <span class="reply-preview-prefix">└ 답글</span>
-                      <span><%= reply.content %></span>
-                    </div>
-                  <% }) %>
-                </div>
-              <% } %>
-            </td>
+                <% if (post.comment_count > 0) { %>
+                  <span class="comment-count">[댓글 <%= post.comment_count %>]</span>
+                <% } %>
 
-            <td><%= post.author_name %></td>
+                <% if (post.reply_previews && post.reply_previews.length > 0) { %>
+                  <div class="reply-preview-list">
+                    <% post.reply_previews.forEach(reply => { %>
+                      <div class="reply-preview-item">
+                        <span class="reply-preview-prefix">└ 답글</span>
+                        <span><%= reply.content %></span>
+                      </div>
+                    <% }) %>
+                  </div>
+                <% } %>
+              </td>
 
-            <td>
-              <%= new Date(post.created_at).toLocaleDateString("ko-KR") %>
-            </td>
-          </tr>
-        <% }) %>
-      </tbody>
-    </table>
+              <td><%= post.author_name %></td>
+
+              <td>
+                <%= new Date(post.created_at).toLocaleDateString("ko-KR") %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
 
     <% if (pagination && pagination.totalPages > 1) { %>
       <div class="pagination">
