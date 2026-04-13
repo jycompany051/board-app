@@ -346,6 +346,40 @@ textarea {
   border-color: #879a89;
 }
 
+.notice-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 86px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: #fff;
+  color: #506d60;
+  border: 1px solid #d6dfd8;
+  font-weight: bold;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.notice-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  margin: 0;
+}
+
+.notice-toggle input:checked + span {
+  color: #506d60;
+}
+
+.notice-toggle:has(input:checked) {
+  background: #edf3ee;
+  border-color: #879a89;
+}
+
 @media (max-width: 700px) {
   .page {
     padding: 14px;
@@ -372,7 +406,8 @@ textarea {
   .search-btn,
   .write-btn,
   .page-link,
-  .btn {
+  .btn,
+  .notice-toggle {
     text-align: center;
   }
 
