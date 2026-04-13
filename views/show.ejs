@@ -2,90 +2,51 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><%= post.title %></title>
 <link rel="stylesheet" href="/public/style.css">
 </head>
 <body>
 
-<div class="page narrow">
+<h2><%= post.title %></h2>
+<p><%= post.author_name %></p>
+<hr>
+<div><%- post.content_html %></div>
 
-  <div class="top-actions top-actions-right">
-    <% if (admin) { %>
+<a href="/">목록</a>
 
-      <span class="admin-status">관리자 로그인 상태</span>
+<hr>
 
-      <a href="/change-password" class="btn">비밀번호 변경</a>
-
-      <form action="/logout" method="POST" class="inline-form">
-        <button type="submit" class="btn logout">로그아웃</button>
-      </form>
-
-    <% } else { %>
-      <a href="/login" class="btn">관리자 로그인</a>
-    <% } %>
-  </div>
-
-  <div class="page-title-wrap">
-    <h1 class="page-title">상담문의</h1>
-  </div>
-
-  <div class="detail-card">
-
-    <h2 class="detail-title"><%= post.title %></h2>
-
-    <div class="detail-meta">
-      <span>작성자: <%= post.author_name %></span>
-      <span>등록일: <%= new Date(post.created_at).toLocaleString("ko-KR") %></span>
-    </div>
-
-    <div class="detail-content">
-      <%- post.content_html %>
-    </div>
-
-    <div class="bottom-btns">
-      <a href="/" class="btn cancel">목록</a>
-
-      <% if (!admin) { %>
-        <a href="/edit/<%= post.id %>" class="btn">수정</a>
-      <% } %>
-
-      <% if (admin) { %>
-        <form action="/delete/<%= post.id %>" method="POST" class="inline-form">
-          <button type="submit" class="btn delete">삭제</button>
-        </form>
-      <% } %>
-    </div>
-
-  </div>
-
-</div>
+<h3>댓글</h3>
 
 <% if (admin) { %>
-<script>
-(function () {
-  let allowNavigation = false;
-
-  document.addEventListener("click", function (e) {
-    const link = e.target.closest("a");
-    const button = e.target.closest("button");
-    const form = e.target.closest("form");
-
-    if (link || form || button) {
-      allowNavigation = true;
-    }
-  });
-
-  window.addEventListener("beforeunload", function () {
-    if (!allowNavigation) {
-      try {
-        navigator.sendBeacon("/logout-beacon");
-      } catch (e) {}
-    }
-  });
-})();
-</script>
+<form method="POST" action="/comment/<%= post.id %>">
+<textarea name="content"></textarea>
+<button>댓글 등록</button>
+</form>
 <% } %>
+
+<% comments.forEach(c => { %>
+<div style="border:1px solid #ccc; margin:10px; padding:10px;">
+<b><%= c.author_name %></b>
+<p><%= c.content %></p>
+
+<% if (admin) { %>
+<form method="POST" action="/reply/<%= post.id %>/<%= c.id %>">
+<textarea name="content"></textarea>
+<button>답글</button>
+</form>
+<% } %>
+
+<% if (replyMap.get(c.id)) { %>
+  <% replyMap.get(c.id).forEach(r => { %>
+  <div style="margin-left:30px; border-left:3px solid #ccc;">
+    <b><%= r.author_name %></b>
+    <p><%= r.content %></p>
+  </div>
+  <% }) %>
+<% } %>
+
+</div>
+<% }) %>
 
 </body>
 </html>
