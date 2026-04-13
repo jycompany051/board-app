@@ -1,115 +1,160 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><%= post.title %></title>
-  <link rel="stylesheet" href="/style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= post.title %></title>
+<link rel="stylesheet" href="/public/style.css">
 </head>
 <body>
-  <!--
-    ============================================================
-    기존 상세보기 화면의 상단/본문/UI는 그대로 둔다는 전제입니다.
-    아래 구조에서 "기존 상세보기 영역" 부분은 현재 사용 중인 마크업 그대로 두고,
-    그 아래에 댓글 섹션만 추가하면 됩니다.
-    ============================================================
-  -->
 
-  <div class="detail-wrap">
-    <!-- 기존 상세보기 영역 시작 -->
-    <div class="detail-view">
-      <h1><%= post.title %></h1>
+<div class="page narrow">
 
-      <% if (post.author) { %>
-        <div><%= post.author %></div>
-      <% } %>
+  <div class="top-actions top-actions-right">
+    <% if (admin) { %>
 
-      <% if (post.createdAt) { %>
-        <div>
-          <%= new Date(post.createdAt).toLocaleString("ko-KR") %>
-        </div>
-      <% } %>
+      <span class="admin-status">관리자 로그인 상태</span>
 
-      <div>
-        <%- String(post.content || "").replace(/\n/g, "<br>") %>
-      </div>
+      <a href="/change-password" class="btn">비밀번호 변경</a>
+
+      <form action="/logout" method="POST" class="inline-form">
+        <button type="submit" class="btn logout">로그아웃</button>
+      </form>
+
+    <% } else { %>
+      <a href="/login" class="btn">관리자 로그인</a>
+    <% } %>
+  </div>
+
+  <div class="page-title-wrap">
+    <h1 class="page-title">상담문의</h1>
+  </div>
+
+  <div class="detail-card">
+
+    <h2 class="detail-title"><%= post.title %></h2>
+
+    <div class="detail-meta">
+      <span>작성자: <%= post.author_name %></span>
+      <span>등록일: <%= new Date(post.created_at).toLocaleString("ko-KR") %></span>
     </div>
-    <!-- 기존 상세보기 영역 끝 -->
 
-    <!-- ========================================================= -->
-    <!-- 댓글 영역 추가 시작 -->
-    <!-- ========================================================= -->
-    <div class="comments-section">
-      <h3>댓글</h3>
+    <div class="detail-content">
+      <%- post.content_html %>
+    </div>
 
-      <% if (isAdmin) { %>
-        <form method="POST" action="/posts/<%= post.id %>/comments">
-          <input type="hidden" name="admin" value="1" />
-          <textarea
-            name="content"
-            rows="3"
-            placeholder="댓글을 입력하세요"
-            required
-          ></textarea>
-          <button type="submit">댓글 등록</button>
+    <div class="bottom-btns">
+      <a href="/" class="btn cancel">목록</a>
+
+      <% if (!admin) { %>
+        <a href="/edit/<%= post.id %>" class="btn">수정</a>
+      <% } %>
+
+      <% if (admin) { %>
+        <form action="/delete/<%= post.id %>" method="POST" class="inline-form">
+          <button type="submit" class="btn delete">삭제</button>
         </form>
       <% } %>
-
-      <% if (post.comments && post.comments.length > 0) { %>
-        <% post.comments.forEach(function(comment) { %>
-          <div class="comment-item">
-            <div class="comment-meta">
-              <strong><%= comment.author || "관리자" %></strong>
-              <% if (comment.createdAt) { %>
-                <span><%= new Date(comment.createdAt).toLocaleString("ko-KR") %></span>
-              <% } %>
-            </div>
-
-            <div class="comment-content">
-              <%- String(comment.content || "").replace(/\n/g, "<br>") %>
-            </div>
-
-            <% if (isAdmin) { %>
-              <form method="POST" action="/posts/<%= post.id %>/comments/<%= comment.id %>/replies">
-                <input type="hidden" name="admin" value="1" />
-                <textarea
-                  name="content"
-                  rows="2"
-                  placeholder="답글을 입력하세요"
-                  required
-                ></textarea>
-                <button type="submit">답글 등록</button>
-              </form>
-            <% } %>
-
-            <!-- 답글: 부모 댓글 바로 아래 -->
-            <% if (comment.replies && comment.replies.length > 0) { %>
-              <div class="reply-list">
-                <% comment.replies.forEach(function(reply) { %>
-                  <div class="reply-item">
-                    <div class="reply-meta">
-                      <strong><%= reply.author || "관리자" %></strong>
-                      <% if (reply.createdAt) { %>
-                        <span><%= new Date(reply.createdAt).toLocaleString("ko-KR") %></span>
-                      <% } %>
-                    </div>
-
-                    <div class="reply-content">
-                      <%- String(reply.content || "").replace(/\n/g, "<br>") %>
-                    </div>
-                  </div>
-                <% }) %>
-              </div>
-            <% } %>
-          </div>
-        <% }) %>
-      <% } else { %>
-        <div>등록된 댓글이 없습니다.</div>
-      <% } %>
     </div>
-    <!-- ========================================================= -->
-    <!-- 댓글 영역 추가 끝 -->
-    <!-- ========================================================= -->
+
   </div>
+
+  <div class="detail-card">
+    <h3 class="detail-title">댓글</h3>
+
+    <% if (admin) { %>
+      <form action="/comment/<%= post.id %>" method="POST">
+        <textarea
+          name="content"
+          placeholder="댓글을 입력하세요"
+          required
+          style="width:100%; min-height:90px; padding:12px; margin-top:12px; margin-bottom:12px; box-sizing:border-box; font:inherit;"
+        ></textarea>
+
+        <div class="bottom-btns">
+          <button type="submit" class="btn">댓글 등록</button>
+        </div>
+      </form>
+    <% } %>
+
+    <% if (comments && comments.length > 0) { %>
+      <% comments.forEach(function(comment) { %>
+        <div style="margin-top:20px; padding-top:20px; border-top:1px solid #e5e7eb;">
+          <div class="detail-meta" style="margin-bottom:10px;">
+            <span>작성자: <%= comment.author_name %></span>
+            <span>등록일: <%= new Date(comment.created_at).toLocaleString("ko-KR") %></span>
+          </div>
+
+          <div class="detail-content" style="margin-bottom:12px;">
+            <%= comment.content %>
+          </div>
+
+          <% if (admin) { %>
+            <form action="/reply/<%= post.id %>/<%= comment.id %>" method="POST">
+              <textarea
+                name="content"
+                placeholder="답글을 입력하세요"
+                required
+                style="width:100%; min-height:72px; padding:12px; margin-bottom:12px; box-sizing:border-box; font:inherit;"
+              ></textarea>
+
+              <div class="bottom-btns">
+                <button type="submit" class="btn">답글 등록</button>
+              </div>
+            </form>
+          <% } %>
+
+          <% const replies = replyMap.get(comment.id) || []; %>
+          <% if (replies.length > 0) { %>
+            <% replies.forEach(function(reply) { %>
+              <div style="margin-top:14px; margin-left:20px; padding:16px; border-top:1px solid #f0f0f0;">
+                <div class="detail-meta" style="margin-bottom:8px;">
+                  <span>작성자: <%= reply.author_name %></span>
+                  <span>등록일: <%= new Date(reply.created_at).toLocaleString("ko-KR") %></span>
+                </div>
+
+                <div class="detail-content">
+                  <%= reply.content %>
+                </div>
+              </div>
+            <% }) %>
+          <% } %>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <div class="detail-content" style="margin-top:12px;">
+        등록된 댓글이 없습니다.
+      </div>
+    <% } %>
+  </div>
+
+</div>
+
+<% if (admin) { %>
+<script>
+(function () {
+  let allowNavigation = false;
+
+  document.addEventListener("click", function (e) {
+    const link = e.target.closest("a");
+    const button = e.target.closest("button");
+    const form = e.target.closest("form");
+
+    if (link || form || button) {
+      allowNavigation = true;
+    }
+  });
+
+  window.addEventListener("beforeunload", function () {
+    if (!allowNavigation) {
+      try {
+        navigator.sendBeacon("/logout-beacon");
+      } catch (e) {}
+    }
+  });
+})();
+</script>
+<% } %>
+
 </body>
 </html>
