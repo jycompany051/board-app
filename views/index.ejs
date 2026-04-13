@@ -56,6 +56,14 @@
               <a href="/post/<%= post.id %>" class="title-link">
                 <%= post.title %>
               </a>
+
+              <% if (post.comment_count > 0) { %>
+                <span class="comment-count">[댓글 <%= post.comment_count %>]</span>
+              <% } %>
+
+              <% if (post.reply_count > 0) { %>
+                <span class="comment-count">[답글 <%= post.reply_count %>]</span>
+              <% } %>
             </td>
 
             <td><%= post.author_name %></td>
