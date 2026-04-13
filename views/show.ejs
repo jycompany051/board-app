@@ -85,6 +85,12 @@
           </div>
 
           <% if (admin) { %>
+            <div class="bottom-btns">
+              <form action="/comment-delete/<%= post.id %>/<%= comment.id %>" method="POST" class="inline-form">
+                <button type="submit" class="btn delete">댓글 삭제</button>
+              </form>
+            </div>
+
             <form action="/reply/<%= post.id %>/<%= comment.id %>" method="POST" class="reply-form">
               <textarea name="content" placeholder="답글을 입력하세요" required></textarea>
 
