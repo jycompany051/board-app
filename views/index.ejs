@@ -2,20 +2,23 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>이용후기</title>
   <link rel="stylesheet" href="/public/style.css" />
 </head>
 <body>
   <div class="page">
     <header class="hero">
+      <div class="hero-badge">REVIEW BOARD</div>
       <h1>이용후기</h1>
-      <p>방문자들이 남긴 소중한 후기를 확인해보세요.</p>
+      <p>방문자들이 남긴 소중한 후기를 한눈에 확인해보세요.</p>
 
       <div class="hero-actions">
         <a class="btn primary" href="/write">후기 남기기</a>
 
         <% if (admin) { %>
           <a class="btn" href="/change-password">비밀번호 변경</a>
+
           <form method="post" action="/logout" class="inline-form">
             <button type="submit" class="btn danger">로그아웃</button>
           </form>
@@ -25,31 +28,45 @@
       </div>
     </header>
 
-    <section class="review-list">
+    <section class="review-section">
+      <div class="section-head">
+        <h2>최신 후기</h2>
+        <span><%= posts.length %>개의 후기</span>
+      </div>
+
       <% if (posts.length === 0) { %>
-        <div class="empty-box">아직 등록된 후기가 없습니다.</div>
+        <div class="empty-box">
+          <strong>아직 등록된 후기가 없습니다.</strong>
+          <p>첫 번째 후기를 남겨보세요.</p>
+        </div>
       <% } %>
 
-      <% posts.forEach(post => { %>
-        <article class="review-card">
-          <div class="review-head">
-            <h2><%= post.title %></h2>
-            <span class="author"><%= post.author_name || "익명" %></span>
-          </div>
+      <div class="review-list">
+        <% posts.forEach(post => { %>
+          <article class="review-card">
+            <div class="review-head">
+              <div>
+                <h3><%= post.title %></h3>
+                <div class="author-line">
+                  <span class="author-chip"><%= post.author_name || "익명" %></span>
+                </div>
+              </div>
+            </div>
 
-          <p class="review-content"><%= post.content %></p>
+            <div class="review-content"><%= post.content %></div>
 
-          <div class="review-foot">
-            <span><%= new Date(post.created_at).toLocaleString("ko-KR") %></span>
+            <div class="review-foot">
+              <span><%= new Date(post.created_at).toLocaleString("ko-KR") %></span>
 
-            <% if (admin) { %>
-              <form method="post" action="/delete/<%= post.id %>">
-                <button type="submit" class="btn danger small">삭제</button>
-              </form>
-            <% } %>
-          </div>
-        </article>
-      <% }) %>
+              <% if (admin) { %>
+                <form method="post" action="/delete/<%= post.id %>">
+                  <button type="submit" class="btn danger small">삭제</button>
+                </form>
+              <% } %>
+            </div>
+          </article>
+        <% }) %>
+      </div>
     </section>
   </div>
 </body>
