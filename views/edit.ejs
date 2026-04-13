@@ -15,6 +15,7 @@
     </header>
 
     <div class="top-actions">
+      <a class="btn" href="/post/<%= post.id %>">수정 취소</a>
       <a class="btn" href="/">목록으로</a>
     </div>
 
@@ -23,8 +24,13 @@
     <% } %>
 
     <form method="post" action="/edit/<%= post.id %>" class="form-card" onsubmit="return prepareSubmit();">
-      <label class="label">이름 또는 닉네임</label>
-      <input type="text" name="author_name" value="<%= post.author_name || '' %>" />
+      <% if (!admin) { %>
+        <label class="label">이름 또는 닉네임</label>
+        <input type="text" name="author_name" value="<%= post.author_name || '' %>" />
+      <% } else { %>
+        <label class="label">작성자</label>
+        <input type="text" value="관리자" disabled />
+      <% } %>
 
       <label class="label">제목</label>
       <input type="text" name="title" value="<%= post.title %>" required />
