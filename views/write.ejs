@@ -1,12 +1,14 @@
 <form method="POST">
 
-<input name="author" placeholder="작성자"><br>
-<input name="title" placeholder="제목"><br>
-<textarea name="content"></textarea><br>
+<input name="author" placeholder="작성자">
+<input name="title" placeholder="제목">
 
-<% if (!admin) { %>
-<input name="password" placeholder="비밀번호"><br>
+<textarea name="content"></textarea>
+
+<% if(!admin){ %>
+<input name="password" placeholder="비밀번호">
 <% } %>
 
 <button>등록</button>
+
 </form>
