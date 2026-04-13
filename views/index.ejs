@@ -1,42 +1,20 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<link rel="stylesheet" href="/public/style.css">
-</head>
-<body>
+<h1>게시판</h1>
 
-<h1>상담 후기글</h1>
+<% if(admin){ %>
+<form action="/logout" method="POST">
+<button>로그아웃</button>
+</form>
+<% } else { %>
+<a href="/login">관리자 로그인</a>
+<% } %>
 
-<div style="text-align:right;">
-  <% if (admin) { %>
-    <span>관리자 로그인 상태</span>
-    <form action="/logout" method="POST" style="display:inline;">
-      <button>로그아웃</button>
-    </form>
-  <% } else { %>
-    <a href="/login">관리자 로그인</a>
-  <% } %>
-
-  <a href="/write">글쓰기</a>
-</div>
+<a href="/write">글쓰기</a>
 
 <table>
+<% posts.forEach((p)=>{ %>
 <tr>
-<th>번호</th>
-<th>제목</th>
-<th>작성자</th>
-</tr>
-
-<% posts.forEach((p, i) => { %>
-<tr>
-<td><%= posts.length - i %></td>
 <td><a href="/post/<%= p.id %>"><%= p.title %></a></td>
 <td><%= p.author_name %></td>
 </tr>
 <% }) %>
-
 </table>
-
-</body>
-</html>
