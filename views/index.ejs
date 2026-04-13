@@ -9,13 +9,17 @@
 <body>
 
 <div class="page">
+
   <div class="top-actions top-actions-right">
     <% if (admin) { %>
       <span class="admin-status">관리자 로그인 상태</span>
+
       <a href="/change-password" class="btn">비밀번호 변경</a>
+
       <form action="/logout" method="POST" class="inline-form">
         <button type="submit" class="btn logout">로그아웃</button>
       </form>
+
     <% } else { %>
       <a href="/login" class="btn">관리자 로그인</a>
     <% } %>
@@ -27,52 +31,69 @@
   </div>
 
   <div class="list-card">
+
     <div class="list-top">
-      <span>전체 : <strong><%= posts.length %></strong></span>
+      <span>전체 : <%= posts.length %></span>
       <a href="/write" class="btn">글쓰기</a>
     </div>
 
     <table class="board-table">
       <thead>
         <tr>
-          <th class="col-no">번호</th>
+          <th>번호</th>
           <th>제목</th>
-          <th class="col-author">작성자</th>
-          <th class="col-date">등록일</th>
+          <th>작성자</th>
+          <th>등록일</th>
         </tr>
       </thead>
-      <tbody>
-        <% if (posts.length === 0) { %>
-          <tr>
-            <td colspan="4" class="empty-cell">등록된 글이 없습니다.</td>
-          </tr>
-        <% } %>
 
-        <% posts.forEach((post) => { %>
+      <tbody>
+        <% posts.forEach(post => { %>
           <tr>
-            <td class="col-no"><%= post.id %></td>
+            <td><%= post.id %></td>
+
             <td class="title-cell">
               <a href="/post/<%= post.id %>" class="title-link">
                 <%= post.title %>
               </a>
-              <% if (post.comment_count > 0) { %>
-                <span class="comment-count">[<%= post.comment_count %>]</span>
-              <% } %>
             </td>
-            <td class="col-author"><%= post.author_name %></td>
-            <td class="col-date"><%= new Date(post.created_at).toLocaleDateString("ko-KR") %></td>
+
+            <td><%= post.author_name %></td>
+
+            <td>
+              <%= new Date(post.created_at).toLocaleDateString("ko-KR") %>
+            </td>
           </tr>
         <% }) %>
       </tbody>
     </table>
+
   </div>
 </div>
 
 <% if (admin) { %>
 <script>
-window.addEventListener("beforeunload", () => {
-  try { navigator.sendBeacon("/logout-beacon"); } catch(e) {}
-});
+(function () {
+  let allowNavigation = false;
+
+  document.addEventListener("click", function (e) {
+    const link = e.target.closest("a");
+    const button = e.target.closest("button");
+    const form = e.target.closest("form");
+
+    if (link || form || button) {
+      allowNavigation = true;
+    }
+  });
+
+  window.addEventListener("beforeunload", function () {
+    if (!allowNavigation) {
+      try {
+        navigator.sendBeacon("/logout-beacon");
+      } catch (e) {}
+    }
+  });
+})();
 </script>
 <% } %>
 
