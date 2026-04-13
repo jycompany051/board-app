@@ -2,26 +2,33 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>관리자 로그인</title>
   <link rel="stylesheet" href="/public/style.css" />
 </head>
 <body>
   <div class="page narrow">
-    <h1>관리자 로그인</h1>
-    <a class="btn" href="/">목록으로</a>
+    <header class="sub-hero">
+      <h1>관리자 로그인</h1>
+      <p>관리자 전용 기능을 사용하려면 로그인하세요.</p>
+    </header>
 
-    <br /><br />
+    <div class="top-actions">
+      <a class="btn" href="/">목록으로</a>
+    </div>
 
     <% if (error) { %>
       <p class="error-text"><%= error %></p>
     <% } %>
 
     <form method="post" action="/login" class="form-card">
-      <input type="text" name="username" placeholder="아이디" required />
-      <br /><br />
+      <label class="label">아이디</label>
+      <input type="text" name="username" placeholder="관리자 아이디" required />
+
+      <label class="label">비밀번호</label>
       <input type="password" name="password" placeholder="비밀번호" required />
-      <br /><br />
-      <button type="submit" class="btn primary">로그인</button>
+
+      <button type="submit" class="btn primary full">로그인</button>
     </form>
   </div>
 </body>
