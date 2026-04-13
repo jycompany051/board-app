@@ -70,7 +70,7 @@
           <% } %>
 
           <% posts.forEach(post => { %>
-            <tr>
+            <tr class="<%= post.is_notice ? 'notice-row' : '' %>">
               <td>
                 <% if (post.is_notice) { %>
                   &lt;공지&gt;
