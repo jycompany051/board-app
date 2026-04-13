@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>글 목록</title>
+  <title>상담 후기글</title>
   <link rel="stylesheet" href="/public/style.css" />
 </head>
 <body>
   <div class="page">
     <header class="hero simple">
-      <h1>글 목록</h1>
+      <h1>상담 후기글</h1>
       <p>차분한 분위기에서 글을 읽고 남길 수 있는 공간입니다.</p>
 
       <div class="hero-actions">
@@ -47,16 +47,20 @@
               </div>
             </div>
 
-            <div class="review-content"><%= post.content %></div>
+            <div class="review-content"><%- post.content %></div>
 
             <div class="review-foot">
               <span><%= new Date(post.created_at).toLocaleString("ko-KR") %></span>
 
-              <% if (admin) { %>
-                <form method="post" action="/delete/<%= post.id %>">
-                  <button type="submit" class="btn danger small">삭제</button>
-                </form>
-              <% } %>
+              <div class="action-row">
+                <a class="btn small" href="/edit/<%= post.id %>">수정</a>
+
+                <% if (admin) { %>
+                  <form method="post" action="/delete/<%= post.id %>">
+                    <button type="submit" class="btn danger small">삭제</button>
+                  </form>
+                <% } %>
+              </div>
             </div>
           </article>
         <% }) %>
