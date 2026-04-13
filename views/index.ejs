@@ -17,8 +17,8 @@
 
         <div class="top-bar-right top-bar-column">
           <% if (admin) { %>
+            <div class="admin-status">관리자 로그인 상태</div>
             <a class="btn" href="/change-password">비밀번호 변경</a>
-
             <form method="post" action="/logout" class="inline-form">
               <button type="submit" class="btn danger">로그아웃</button>
             </form>
