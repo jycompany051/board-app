@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>관리자 로그인</title>
+  <link rel="stylesheet" href="/public/style.css" />
+</head>
+<body>
+  <h1>관리자 로그인</h1>
+
+  <a class="btn" href="/">목록으로</a>
+
+  <br /><br />
+
+  <% if (error) { %>
+    <p style="color:red;"><%= error %></p>
+  <% } %>
+
+  <form method="post" action="/login">
+    <input type="text" name="username" placeholder="아이디" required />
+    <br /><br />
+    <input type="password" name="password" placeholder="비밀번호" required />
+    <br /><br />
+    <button type="submit">로그인</button>
+  </form>
+</body>
+</html>
