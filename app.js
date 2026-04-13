@@ -69,6 +69,7 @@ async function initDb() {
       content_html TEXT,
       author_name TEXT,
       edit_password_hash TEXT,
+      checked_by_admin BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -89,6 +90,7 @@ async function initDb() {
   await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS content_html TEXT`);
   await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS author_name TEXT`);
   await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS edit_password_hash TEXT`);
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS checked_by_admin BOOLEAN NOT NULL DEFAULT FALSE`);
 
   await pool.query(`
     UPDATE posts
@@ -112,6 +114,12 @@ async function initDb() {
     UPDATE posts
     SET author_name = COALESCE(NULLIF(author_name, ''), '익명')
     WHERE author_name IS NULL
+  `);
+
+  await pool.query(`
+    UPDATE posts
+    SET checked_by_admin = FALSE
+    WHERE checked_by_admin IS NULL
   `);
 
   const adminCheck = await pool.query(
@@ -156,6 +164,7 @@ async function startServer() {
           p.title,
           p.author_name,
           p.created_at,
+          p.checked_by_admin,
           COUNT(CASE WHEN c.parent_id IS NULL THEN 1 END)::int AS comment_count,
           COUNT(CASE WHEN c.parent_id IS NOT NULL THEN 1 END)::int AS reply_count
         FROM posts p
@@ -164,8 +173,33 @@ async function startServer() {
         ORDER BY p.id DESC
       `);
 
+      const replyPreviewResult = await pool.query(`
+        SELECT
+          c.post_id,
+          c.id,
+          c.content,
+          c.created_at
+        FROM comments c
+        WHERE c.parent_id IS NOT NULL
+        ORDER BY c.post_id DESC, c.id ASC
+      `);
+
+      const replyPreviewMap = new Map();
+
+      for (const reply of replyPreviewResult.rows) {
+        if (!replyPreviewMap.has(reply.post_id)) {
+          replyPreviewMap.set(reply.post_id, []);
+        }
+        replyPreviewMap.get(reply.post_id).push(reply);
+      }
+
+      const posts = result.rows.map((post) => ({
+        ...post,
+        reply_previews: replyPreviewMap.get(post.id) || []
+      }));
+
       res.render("index", {
-        posts: result.rows,
+        posts,
         admin: req.session.admin || false
       });
     } catch (err) {
@@ -184,6 +218,14 @@ async function startServer() {
 
       if (postResult.rows.length === 0) {
         return res.status(404).send("게시글을 찾을 수 없습니다.");
+      }
+
+      if (req.session.admin && !postResult.rows[0].checked_by_admin) {
+        await pool.query(
+          "UPDATE posts SET checked_by_admin = TRUE WHERE id = $1",
+          [req.params.id]
+        );
+        postResult.rows[0].checked_by_admin = true;
       }
 
       const commentsResult = await pool.query(
@@ -261,9 +303,16 @@ async function startServer() {
       const plainTextContent = stripHtml(safeContentHtml);
 
       await pool.query(
-        `INSERT INTO posts (title, content, content_html, author_name, edit_password_hash)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [safeTitle, plainTextContent, safeContentHtml, safeAuthor, passwordHash]
+        `INSERT INTO posts (title, content, content_html, author_name, edit_password_hash, checked_by_admin)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          safeTitle,
+          plainTextContent,
+          safeContentHtml,
+          safeAuthor,
+          passwordHash,
+          req.session.admin ? true : false
+        ]
       );
 
       res.redirect("/");
@@ -356,12 +405,20 @@ async function startServer() {
       }
 
       const plainTextContent = stripHtml(safeContentHtml);
+      const checkedByAdmin = req.session.admin ? true : false;
 
       await pool.query(
         `UPDATE posts
-         SET title = $1, content = $2, content_html = $3, author_name = $4
-         WHERE id = $5`,
-        [safeTitle, plainTextContent, safeContentHtml, safeAuthor, req.params.id]
+         SET title = $1, content = $2, content_html = $3, author_name = $4, checked_by_admin = $5
+         WHERE id = $6`,
+        [
+          safeTitle,
+          plainTextContent,
+          safeContentHtml,
+          safeAuthor,
+          checkedByAdmin,
+          req.params.id
+        ]
       );
 
       res.redirect(`/post/${req.params.id}`);
