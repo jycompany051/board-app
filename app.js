@@ -147,7 +147,6 @@ async function startServer() {
     })
   );
 
-  // 목록
   app.get("/", async (req, res) => {
     try {
       const result = await pool.query(`
@@ -173,7 +172,6 @@ async function startServer() {
     }
   });
 
-  // 상세
   app.get("/post/:id", async (req, res) => {
     try {
       const postResult = await pool.query(
@@ -215,7 +213,6 @@ async function startServer() {
     }
   });
 
-  // 글쓰기 화면
   app.get("/write", (req, res) => {
     res.render("write", {
       admin: req.session.admin || false,
@@ -223,7 +220,6 @@ async function startServer() {
     });
   });
 
-  // 글 등록
   app.post("/write", async (req, res) => {
     try {
       const { title, content, author_name, edit_password } = req.body;
@@ -275,7 +271,6 @@ async function startServer() {
     }
   });
 
-  // 수정 화면
   app.get("/edit/:id", async (req, res) => {
     try {
       const result = await pool.query(
@@ -298,7 +293,6 @@ async function startServer() {
     }
   });
 
-  // 수정 처리
   app.post("/edit/:id", async (req, res) => {
     try {
       const { title, content, author_name, edit_password } = req.body;
@@ -370,7 +364,6 @@ async function startServer() {
     }
   });
 
-  // 관리자 로그인
   app.get("/login", (req, res) => {
     res.render("login", { error: null });
   });
@@ -416,21 +409,18 @@ async function startServer() {
     }
   });
 
-  // 로그아웃
   app.post("/logout", (req, res) => {
     req.session.destroy(() => {
       res.redirect("/");
     });
   });
 
-  // 창 닫을 때 로그아웃 시도
   app.post("/logout-beacon", (req, res) => {
     req.session.destroy(() => {
       res.status(204).end();
     });
   });
 
-  // 관리자만 삭제
   app.post("/delete/:id", requireAdmin, async (req, res) => {
     try {
       await pool.query("DELETE FROM posts WHERE id = $1", [req.params.id]);
@@ -441,7 +431,6 @@ async function startServer() {
     }
   });
 
-  // 관리자만 댓글 작성
   app.post("/comment/:postId", requireAdmin, async (req, res) => {
     try {
       const { content } = req.body;
@@ -463,7 +452,6 @@ async function startServer() {
     }
   });
 
-  // 관리자만 답글 작성
   app.post("/reply/:postId/:commentId", requireAdmin, async (req, res) => {
     try {
       const { content } = req.body;
@@ -485,7 +473,6 @@ async function startServer() {
     }
   });
 
-  // 관리자 비밀번호 변경
   app.get("/change-password", requireAdmin, (req, res) => {
     res.render("change-password", {
       error: null,
