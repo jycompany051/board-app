@@ -1,20 +1,80 @@
-<h1>게시판</h1>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>상담 후기글</title>
+<link rel="stylesheet" href="/public/style.css">
+</head>
+<body>
 
-<% if(admin){ %>
-<form action="/logout" method="POST">
-<button>로그아웃</button>
-</form>
-<% } else { %>
-<a href="/login">관리자 로그인</a>
+<div class="page">
+  <div class="top-actions top-actions-right">
+    <% if (admin) { %>
+      <span class="admin-status">관리자 로그인 상태</span>
+      <a href="/change-password" class="btn">비밀번호 변경</a>
+      <form action="/logout" method="POST" class="inline-form">
+        <button type="submit" class="btn logout">로그아웃</button>
+      </form>
+    <% } else { %>
+      <a href="/login" class="btn">관리자 로그인</a>
+    <% } %>
+  </div>
+
+  <div class="page-title-wrap">
+    <h1 class="page-title">상담 후기글</h1>
+    <p class="page-desc">상담 관련 글을 확인할 수 있는 게시판입니다.</p>
+  </div>
+
+  <div class="list-card">
+    <div class="list-top">
+      <span>전체 : <strong><%= posts.length %></strong></span>
+      <a href="/write" class="btn">글쓰기</a>
+    </div>
+
+    <table class="board-table">
+      <thead>
+        <tr>
+          <th class="col-no">번호</th>
+          <th>제목</th>
+          <th class="col-author">작성자</th>
+          <th class="col-date">등록일</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (posts.length === 0) { %>
+          <tr>
+            <td colspan="4" class="empty-cell">등록된 글이 없습니다.</td>
+          </tr>
+        <% } %>
+
+        <% posts.forEach((post) => { %>
+          <tr>
+            <td class="col-no"><%= post.id %></td>
+            <td class="title-cell">
+              <a href="/post/<%= post.id %>" class="title-link">
+                <%= post.title %>
+              </a>
+              <% if (post.comment_count > 0) { %>
+                <span class="comment-count">[<%= post.comment_count %>]</span>
+              <% } %>
+            </td>
+            <td class="col-author"><%= post.author_name %></td>
+            <td class="col-date"><%= new Date(post.created_at).toLocaleDateString("ko-KR") %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<% if (admin) { %>
+<script>
+window.addEventListener("beforeunload", () => {
+  try { navigator.sendBeacon("/logout-beacon"); } catch(e) {}
+});
+</script>
 <% } %>
 
-<a href="/write">글쓰기</a>
-
-<table>
-<% posts.forEach((p)=>{ %>
-<tr>
-<td><a href="/post/<%= p.id %>"><%= p.title %></a></td>
-<td><%= p.author_name %></td>
-</tr>
-<% }) %>
-</table>
+</body>
+</html>
