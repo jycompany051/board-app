@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= post.title %></title>
+  <link rel="stylesheet" href="/public/style.css" />
+</head>
+<body>
+  <div class="page narrow">
+    <div class="top-actions">
+      <a class="btn" href="/">목록으로</a>
+
+      <% if (!admin) { %>
+        <a class="btn" href="/login">관리자 로그인</a>
+      <% } else { %>
+        <a class="btn" href="/change-password">비밀번호 변경</a>
+        <form method="post" action="/logout" class="inline-form">
+          <button type="submit" class="btn danger">로그아웃</button>
+        </form>
+      <% } %>
+    </div>
+
+    <article class="detail-card">
+      <div class="detail-head">
+        <h1><%= post.title %></h1>
+        <div class="detail-meta">
+          <span>작성자: <%= post.author_name || "익명" %></span>
+          <span>등록일: <%= new Date(post.created_at).toLocaleString("ko-KR") %></span>
+        </div>
+      </div>
+
+      <div class="detail-content"><%- post.content_html || post.content || '' %></div>
+
+      <div class="detail-actions">
+        <% if (!admin) { %>
+          <a class="btn" href="/edit/<%= post.id %>">수정</a>
+        <% } %>
+
+        <% if (admin) { %>
+          <form method="post" action="/delete/<%= post.id %>">
+            <button type="submit" class="btn danger">삭제</button>
+          </form>
+        <% } %>
+      </div>
+    </article>
+
+    <section class="comment-section">
+      <h2>댓글</h2>
+
+      <% if (admin) { %>
+        <form method="post" action="/comment/<%= post.id %>" class="comment-form">
+          <textarea name="content" placeholder="관리자 댓글 작성" required></textarea>
+          <button type="submit" class="btn primary">댓글 작성</button>
+        </form>
+      <% } %>
+
+      <% if (comments.length === 0) { %>
+        <div class="empty-box">등록된 댓글이 없습니다.</div>
+      <% } %>
+
+      <div class="comment-list">
+        <% comments.forEach(comment => { %>
+          <div class="comment-item">
+            <div class="comment-head">
+              <strong><%= comment.author_name %></strong>
+              <span><%= new Date(comment.created_at).toLocaleString("ko-KR") %></span>
+            </div>
+            <div class="comment-body"><%= comment.content %></div>
+
+            <% if (admin) { %>
+              <form method="post" action="/reply/<%= post.id %>/<%= comment.id %>" class="reply-form">
+                <textarea name="content" placeholder="답글 작성" required></textarea>
+                <button type="submit" class="btn small">답글 작성</button>
+              </form>
+            <% } %>
+
+            <% if (replyMap.get(comment.id)) { %>
+              <div class="reply-list">
+                <% replyMap.get(comment.id).forEach(reply => { %>
+                  <div class="reply-item">
+                    <div class="comment-head">
+                      <strong><%= reply.author_name %></strong>
+                      <span><%= new Date(reply.created_at).toLocaleString("ko-KR") %></span>
+                    </div>
+                    <div class="comment-body"><%= reply.content %></div>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+  </div>
+
+  <% if (admin) { %>
+    <script>
+      window.addEventListener("beforeunload", () => {
+        try {
+          navigator.sendBeacon("/logout-beacon");
+        } catch (e) {}
+      });
+    </script>
+  <% } %>
+</body>
+</html>
