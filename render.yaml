@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: board-app
+    runtime: docker
+    plan: starter
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: TRUST_PROXY
+        value: 1
+      - key: POST_MAX_HTML_LENGTH
+        value: 50000
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: board-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: board-redis
+          property: connectionString
+
+databases:
+  - name: board-postgres
+    databaseName: boarddb
+    user: board
+
+  
+# Render Redis
+# 일부 계정/플랜에서는 별도 생성 UI가 더 안정적일 수 있습니다.
+# render.yaml 배포가 안 되면 Render 대시보드에서 Redis 서비스를 생성한 뒤
+# REDIS_URL 을 웹서비스 환경변수로 수동 연결하세요.
+redis:
+  - name: board-redis
+    plan: starter
