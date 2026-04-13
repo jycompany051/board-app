@@ -52,19 +52,19 @@ async function initDb() {
       id SERIAL PRIMARY KEY,
       title TEXT,
       content TEXT,
+      content_html TEXT,
       author_name TEXT,
       edit_password_hash TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
-  // 기존 배포본과 컬럼 차이 자동 보정
   await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS title TEXT`);
   await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS content TEXT`);
-  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS author_name TEXT DEFAULT '익명'`);
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS content_html TEXT`);
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS author_name TEXT`);
   await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS edit_password_hash TEXT`);
 
-  // 혹시 title/content가 비어 있고 예전 컬럼이 있으면 최소 보정
   await pool.query(`
     UPDATE posts
     SET title = COALESCE(NULLIF(title, ''), '제목 없음')
@@ -75,6 +75,12 @@ async function initDb() {
     UPDATE posts
     SET content = COALESCE(content, '')
     WHERE content IS NULL
+  `);
+
+  await pool.query(`
+    UPDATE posts
+    SET content_html = COALESCE(content_html, content, '')
+    WHERE content_html IS NULL
   `);
 
   await pool.query(`
@@ -160,14 +166,19 @@ async function startServer() {
       }
 
       const safeTitle = String(title).trim();
-      const safeContent = String(content).trim();
+      const safeContentHtml = String(content).trim();
       const safeAuthor =
         author_name && String(author_name).trim()
           ? String(author_name).trim()
           : "익명";
       const safePassword = String(edit_password).trim();
 
-      if (!safeTitle || !safeContent || !safePassword) {
+      const plainTextContent = safeContentHtml
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (!safeTitle || !safeContentHtml || !safePassword) {
         return res.render("write", {
           admin: req.session.admin || false,
           error: "제목, 내용, 수정 비밀번호를 모두 입력해주세요."
@@ -177,8 +188,9 @@ async function startServer() {
       const passwordHash = await bcrypt.hash(safePassword, 10);
 
       await pool.query(
-        "INSERT INTO posts (title, content, author_name, edit_password_hash) VALUES ($1, $2, $3, $4)",
-        [safeTitle, safeContent, safeAuthor, passwordHash]
+        `INSERT INTO posts (title, content, content_html, author_name, edit_password_hash)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [safeTitle, plainTextContent, safeContentHtml, safeAuthor, passwordHash]
       );
 
       res.redirect("/");
@@ -191,7 +203,6 @@ async function startServer() {
     }
   });
 
-  // 게시글 수정 화면
   app.get("/edit/:id", async (req, res) => {
     try {
       const result = await pool.query("SELECT * FROM posts WHERE id = $1", [req.params.id]);
@@ -210,7 +221,6 @@ async function startServer() {
     }
   });
 
-  // 게시글 수정 처리
   app.post("/edit/:id", async (req, res) => {
     try {
       const { title, content, author_name, edit_password } = req.body;
@@ -240,13 +250,18 @@ async function startServer() {
       }
 
       const safeTitle = String(title || "").trim();
-      const safeContent = String(content || "").trim();
+      const safeContentHtml = String(content || "").trim();
       const safeAuthor =
         author_name && String(author_name).trim()
           ? String(author_name).trim()
           : "익명";
 
-      if (!safeTitle || !safeContent) {
+      const plainTextContent = safeContentHtml
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (!safeTitle || !safeContentHtml) {
         return res.render("edit", {
           post,
           error: "제목과 내용을 입력해주세요."
@@ -254,8 +269,10 @@ async function startServer() {
       }
 
       await pool.query(
-        "UPDATE posts SET title = $1, content = $2, author_name = $3 WHERE id = $4",
-        [safeTitle, safeContent, safeAuthor, req.params.id]
+        `UPDATE posts
+         SET title = $1, content = $2, content_html = $3, author_name = $4
+         WHERE id = $5`,
+        [safeTitle, plainTextContent, safeContentHtml, safeAuthor, req.params.id]
       );
 
       res.redirect("/");
