@@ -10,31 +10,30 @@ app.use(express.json());
 app.use("/public", express.static("public"));
 
 app.use(session({
-  secret: process.env.SESSION_SECRET || "secret",
+  secret: "secret",
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: false
 }));
 
 app.set("view engine", "ejs");
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: { rejectUnauthorized: false }
 });
 
-// 관리자 체크
 function requireAdmin(req, res, next) {
   if (!req.session.admin) return res.redirect("/login");
   next();
 }
 
-// ================= DB 초기화 =================
+// DB 생성
 (async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS posts (
       id SERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
-      content_html TEXT NOT NULL,
+      title TEXT,
+      content_html TEXT,
       author_name TEXT,
       password_hash TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -53,7 +52,7 @@ function requireAdmin(req, res, next) {
   `);
 })();
 
-// ================= 메인 =================
+// 목록
 app.get("/", async (req, res) => {
   const result = await pool.query("SELECT * FROM posts ORDER BY id DESC");
 
@@ -63,43 +62,33 @@ app.get("/", async (req, res) => {
   });
 });
 
-// ================= 글쓰기 =================
+// 글쓰기
 app.get("/write", (req, res) => {
-  res.render("write", { admin: req.session.admin || false });
+  res.render("write", { admin: req.session.admin });
 });
 
 app.post("/write", async (req, res) => {
-  try {
-    const { title, content, author, password } = req.body;
+  const { title, content, author, password } = req.body;
 
-    const hash = password
-      ? await bcrypt.hash(password, 10)
-      : null;
+  const hash = password ? await bcrypt.hash(password, 10) : null;
 
-    await pool.query(
-      `INSERT INTO posts (title, content_html, author_name, password_hash)
-       VALUES ($1, $2, $3, $4)`,
-      [
-        title,
-        content,
-        req.session.admin ? "관리자" : author,
-        req.session.admin ? null : hash
-      ]
-    );
+  await pool.query(
+    `INSERT INTO posts (title, content_html, author_name, password_hash)
+     VALUES ($1,$2,$3,$4)`,
+    [
+      title,
+      content,
+      req.session.admin ? "관리자" : author,
+      req.session.admin ? null : hash
+    ]
+  );
 
-    res.redirect("/");
-  } catch (err) {
-    console.error(err);
-    res.send("글 등록 오류");
-  }
+  res.redirect("/");
 });
 
-// ================= 상세 =================
+// 상세
 app.get("/post/:id", async (req, res) => {
-  const post = await pool.query(
-    "SELECT * FROM posts WHERE id=$1",
-    [req.params.id]
-  );
+  const post = await pool.query("SELECT * FROM posts WHERE id=$1", [req.params.id]);
 
   const comments = await pool.query(
     `SELECT * FROM comments WHERE post_id=$1
@@ -124,7 +113,7 @@ app.get("/post/:id", async (req, res) => {
   });
 });
 
-// ================= 댓글 =================
+// 댓글
 app.post("/comment/:id", requireAdmin, async (req, res) => {
   await pool.query(
     `INSERT INTO comments (post_id, content, author_name)
@@ -135,7 +124,7 @@ app.post("/comment/:id", requireAdmin, async (req, res) => {
   res.redirect(`/post/${req.params.id}`);
 });
 
-// ================= 답글 =================
+// 답글
 app.post("/reply/:postId/:commentId", requireAdmin, async (req, res) => {
   await pool.query(
     `INSERT INTO comments (post_id, content, author_name, parent_id)
@@ -146,36 +135,27 @@ app.post("/reply/:postId/:commentId", requireAdmin, async (req, res) => {
   res.redirect(`/post/${req.params.postId}`);
 });
 
-// ================= 로그인 =================
+// 로그인
 app.get("/login", (req, res) => {
   res.render("login");
 });
 
 app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
-
-  if (
-    username === process.env.ADMIN_USERNAME &&
-    await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH)
-  ) {
+  if (req.body.username === "admin" && req.body.password === "1234") {
     req.session.admin = true;
     return res.redirect("/");
   }
-
   res.send("로그인 실패");
 });
 
+// 로그아웃
 app.post("/logout", (req, res) => {
   req.session.destroy(() => res.redirect("/"));
 });
 
-// 창 닫을 때 로그아웃
+// 창 닫기 로그아웃
 app.post("/logout-beacon", (req, res) => {
   req.session.destroy(() => res.sendStatus(200));
 });
 
-// ================= 서버 =================
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log("서버 실행:", PORT);
-});
+app.listen(10000, () => console.log("서버 실행"));
