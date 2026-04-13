@@ -1,14 +1,6 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<link rel="stylesheet" href="/public/style.css">
-</head>
-<body>
-
 <h2><%= post.title %></h2>
 <p><%= post.author_name %></p>
-<hr>
+
 <div><%- post.content_html %></div>
 
 <a href="/">목록</a>
@@ -17,36 +9,33 @@
 
 <h3>댓글</h3>
 
-<% if (admin) { %>
+<% if(admin){ %>
 <form method="POST" action="/comment/<%= post.id %>">
 <textarea name="content"></textarea>
-<button>댓글 등록</button>
+<button>댓글</button>
 </form>
 <% } %>
 
-<% comments.forEach(c => { %>
-<div style="border:1px solid #ccc; margin:10px; padding:10px;">
+<% comments.forEach(c=>{ %>
+<div>
 <b><%= c.author_name %></b>
 <p><%= c.content %></p>
 
-<% if (admin) { %>
+<% if(admin){ %>
 <form method="POST" action="/reply/<%= post.id %>/<%= c.id %>">
 <textarea name="content"></textarea>
 <button>답글</button>
 </form>
 <% } %>
 
-<% if (replyMap.get(c.id)) { %>
-  <% replyMap.get(c.id).forEach(r => { %>
-  <div style="margin-left:30px; border-left:3px solid #ccc;">
-    <b><%= r.author_name %></b>
-    <p><%= r.content %></p>
-  </div>
-  <% }) %>
+<% if(replyMap.get(c.id)){ %>
+<% replyMap.get(c.id).forEach(r=>{ %>
+<div style="margin-left:30px">
+<b><%= r.author_name %></b>
+<p><%= r.content %></p>
+</div>
+<% }) %>
 <% } %>
 
 </div>
 <% }) %>
-
-</body>
-</html>
