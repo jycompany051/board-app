@@ -2,28 +2,36 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>후기 남기기</title>
   <link rel="stylesheet" href="/public/style.css" />
 </head>
 <body>
   <div class="page narrow">
-    <h1>후기 남기기</h1>
-    <a class="btn" href="/">목록으로</a>
+    <header class="sub-hero">
+      <h1>후기 남기기</h1>
+      <p>방문 후기나 사용 경험을 자유롭게 남겨주세요.</p>
+    </header>
 
-    <br /><br />
+    <div class="top-actions">
+      <a class="btn" href="/">목록으로</a>
+    </div>
 
     <% if (error) { %>
       <p class="error-text"><%= error %></p>
     <% } %>
 
     <form method="post" action="/write" class="form-card">
-      <input type="text" name="author_name" placeholder="이름 또는 닉네임" />
-      <br /><br />
-      <input type="text" name="title" placeholder="제목" required />
-      <br /><br />
-      <textarea name="content" placeholder="후기를 남겨주세요." required></textarea>
-      <br /><br />
-      <button type="submit" class="btn primary">등록하기</button>
+      <label class="label">이름 또는 닉네임</label>
+      <input type="text" name="author_name" placeholder="예: 홍길동 / 만족한 고객" />
+
+      <label class="label">제목</label>
+      <input type="text" name="title" placeholder="제목을 입력하세요" required />
+
+      <label class="label">내용</label>
+      <textarea name="content" placeholder="후기 내용을 입력하세요" required></textarea>
+
+      <button type="submit" class="btn primary full">등록하기</button>
     </form>
   </div>
 </body>
