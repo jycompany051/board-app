@@ -93,25 +93,6 @@
               </div>
             </form>
           <% } %>
-
-          <% const replies = replyMap.get(comment.id) || []; %>
-          <% if (replies.length > 0) { %>
-            <div class="reply-list">
-              <% replies.forEach(function(reply) { %>
-                <div class="reply-card">
-                  <div class="reply-title-line">
-                    <strong><%= reply.author_name %></strong>
-                    ·
-                    <span><%= new Date(reply.created_at).toLocaleString("ko-KR") %></span>
-                  </div>
-
-                  <div class="comment-body">
-                    <%= reply.content %>
-                  </div>
-                </div>
-              <% }) %>
-            </div>
-          <% } %>
         </div>
       <% }) %>
     <% } else { %>
