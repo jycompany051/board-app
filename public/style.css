@@ -1,312 +1,578 @@
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f5f5f3;
-  color: #42584b;
+const express = require("express");
+const session = require("express-session");
+const { RedisStore } = require("connect-redis");
+const { createClient } = require("redis");
+const { Pool } = require("pg");
+const bcrypt = require("bcryptjs");
+const path = require("path");
+require("dotenv").config();
+
+const app = express();
+const PORT = process.env.PORT || 10000;
+
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
+app.use(express.json({ limit: "5mb" }));
+app.use("/public", express.static(path.join(__dirname, "public")));
+
+const redisClient = createClient({
+  url: process.env.REDIS_URL
+});
+
+redisClient.on("error", (err) => {
+  console.error("Redis error:", err);
+});
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL?.includes("render.com")
+    ? { rejectUnauthorized: false }
+    : false
+});
+
+app.use((req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
+
+function stripHtml(html) {
+  return String(html || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-.page {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.narrow {
-  max-width: 760px;
-}
-
-.page-title-wrap {
-  text-align: center;
-  margin: 30px 0;
-}
-
-.page-title {
-  font-size: 42px;
-  margin: 0;
-  color: #506d60;
-}
-
-.page-desc {
-  margin-top: 10px;
-  color: #7c8f83;
-}
-
-.top-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.top-actions-right {
-  justify-content: flex-end;
-}
-
-.inline-form {
-  display: inline;
-}
-
-.admin-status {
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: #edf3ee;
-  border: 1px solid #d6e1d8;
-  font-weight: bold;
-  color: #516c5c;
-}
-
-.list-card,
-.detail-card,
-.form-card,
-.login-card,
-.comment-card,
-.reply-card {
-  background: #fff;
-  border: 1px solid #d9e1db;
-  border-radius: 18px;
-  padding: 24px;
-  margin-bottom: 20px;
-}
-
-.list-top {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.board-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.board-table th,
-.board-table td {
-  border-bottom: 1px solid #e5ebe6;
-  padding: 14px 10px;
-  text-align: center;
-}
-
-.board-table th {
-  font-size: 16px;
-}
-
-.title-cell {
-  text-align: left;
-}
-
-.title-link {
-  color: #31473a;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.title-link:hover {
-  text-decoration: none;
-  color: #31473a;
-}
-
-.comment-count {
-  margin-left: 6px;
-  color: #7e9084;
-}
-
-.empty-cell,
-.empty-box {
-  text-align: center;
-  color: #87958c;
-  padding: 20px;
-}
-
-.detail-header-line {
-  border-top: 2px solid #c7d3ca;
-  margin-bottom: 26px;
-}
-
-.detail-title {
-  font-size: 28px;
-  margin-bottom: 20px;
-}
-
-.detail-meta,
-.comment-meta {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  color: #61766a;
-  margin-bottom: 16px;
-}
-
-.detail-content {
-  min-height: 220px;
-  line-height: 1.8;
-  color: #31473a;
-}
-
-.bottom-btns {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-.btn {
-  display: inline-block;
-  padding: 12px 18px;
-  border-radius: 12px;
-  background: #879a89;
-  color: white;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.btn:hover {
-  opacity: 0.95;
-}
-
-.cancel {
-  background: #b0b0b0;
-}
-
-.logout {
-  background: #cc7373;
-}
-
-.delete {
-  background: #9b7d7d;
-}
-
-input,
-textarea {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 14px;
-  margin: 8px 0 14px 0;
-  border: 1px solid #d6dfd8;
-  border-radius: 12px;
-  font-size: 16px;
-}
-
-#editor {
-  background: white;
-  min-height: 240px;
-  margin-top: 8px;
-}
-
-.ql-toolbar.ql-snow {
-  border-radius: 12px 12px 0 0;
-}
-
-.ql-container.ql-snow {
-  min-height: 220px;
-  border-radius: 0 0 12px 12px;
-}
-
-.error-box {
-  background: #ffe5e5;
-  color: #b65252;
-  padding: 12px;
-  border-radius: 10px;
-  margin-bottom: 15px;
-}
-
-.success-box {
-  background: #e8f7ea;
-  color: #39734a;
-  padding: 12px;
-  border-radius: 10px;
-  margin-bottom: 15px;
-}
-
-.login-card h2 {
-  margin-top: 0;
-  font-size: 26px;
-}
-
-.comment-section {
-  margin-top: 30px;
-}
-
-.comment-form textarea,
-.reply-form textarea {
-  min-height: 100px;
-}
-
-.comment-card {
-  margin-top: 14px;
-}
-
-.comment-body {
-  color: #33493d;
-  line-height: 1.7;
-}
-
-.reply-list {
-  margin-top: 14px;
-  padding-left: 20px;
-}
-
-.reply-card {
-  background: #f8faf8;
-  margin-top: 10px;
-}
-
-.reply-title-line {
-  margin-bottom: 8px;
-  color: #61766a;
-}
-
-@media (max-width: 700px) {
-  .page-title {
-    font-size: 30px;
+function requireAdmin(req, res, next) {
+  if (!req.session.admin) {
+    return res.status(403).send("관리자만 접근할 수 있습니다.");
   }
+  next();
+}
 
-  .top-actions,
-  .bottom-btns,
-  .list-top {
-    flex-direction: column;
-    align-items: stretch;
-  }
+async function initDb() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admins (
+      id SERIAL PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
-  .board-table th,
-  .board-table td {
-    font-size: 14px;
-    padding: 10px 6px;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS posts (
+      id SERIAL PRIMARY KEY,
+      title TEXT,
+      content TEXT,
+      content_html TEXT,
+      author_name TEXT,
+      edit_password_hash TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS comments (
+      id SERIAL PRIMARY KEY,
+      post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+      content TEXT NOT NULL,
+      author_name TEXT NOT NULL DEFAULT '관리자',
+      parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS title TEXT`);
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS content TEXT`);
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS content_html TEXT`);
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS author_name TEXT`);
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS edit_password_hash TEXT`);
+
+  await pool.query(`
+    UPDATE posts
+    SET title = COALESCE(NULLIF(title, ''), '제목 없음')
+    WHERE title IS NULL
+  `);
+
+  await pool.query(`
+    UPDATE posts
+    SET content = COALESCE(content, '')
+    WHERE content IS NULL
+  `);
+
+  await pool.query(`
+    UPDATE posts
+    SET content_html = COALESCE(content_html, content, '')
+    WHERE content_html IS NULL
+  `);
+
+  await pool.query(`
+    UPDATE posts
+    SET author_name = COALESCE(NULLIF(author_name, ''), '익명')
+    WHERE author_name IS NULL
+  `);
+
+  const adminCheck = await pool.query(
+    "SELECT * FROM admins WHERE username = $1",
+    ["admin"]
+  );
+
+  if (adminCheck.rows.length === 0) {
+    const defaultHash = await bcrypt.hash("1234", 10);
+    await pool.query(
+      "INSERT INTO admins (username, password_hash) VALUES ($1, $2)",
+      ["admin", defaultHash]
+    );
+    console.log("기본 관리자 계정 생성 완료: admin / 1234");
   }
 }
 
-/* 댓글/답글 기능용 최소 스타일 추가 */
-/* 기존 디자인을 건드리지 않기 위해 최대한 중립적으로만 추가 */
+async function startServer() {
+  await redisClient.connect();
+  await initDb();
 
-.comments-section {
-  margin-top: 24px;
+  app.use(
+    session({
+      store: new RedisStore({ client: redisClient }),
+      secret: process.env.SESSION_SECRET || "change-this-secret",
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: false,
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60 * 24 * 7
+      }
+    })
+  );
+
+  // 목록
+  app.get("/", async (req, res) => {
+    try {
+      const result = await pool.query(`
+        SELECT
+          p.id,
+          p.title,
+          p.author_name,
+          p.created_at,
+          COUNT(c.id)::int AS comment_count
+        FROM posts p
+        LEFT JOIN comments c ON c.post_id = p.id
+        GROUP BY p.id
+        ORDER BY p.id DESC
+      `);
+
+      res.render("index", {
+        posts: result.rows,
+        admin: req.session.admin || false
+      });
+    } catch (err) {
+      console.error("글 목록 오류:", err);
+      res.status(500).send("글 목록을 불러오는 중 오류가 발생했습니다.");
+    }
+  });
+
+  // 상세
+  app.get("/post/:id", async (req, res) => {
+    try {
+      const postResult = await pool.query(
+        "SELECT * FROM posts WHERE id = $1",
+        [req.params.id]
+      );
+
+      if (postResult.rows.length === 0) {
+        return res.status(404).send("게시글을 찾을 수 없습니다.");
+      }
+
+      const commentsResult = await pool.query(
+        `SELECT * FROM comments
+         WHERE post_id = $1
+         ORDER BY COALESCE(parent_id, id), parent_id NULLS FIRST, id ASC`,
+        [req.params.id]
+      );
+
+      const comments = commentsResult.rows.filter((c) => !c.parent_id);
+      const replies = commentsResult.rows.filter((c) => c.parent_id);
+
+      const replyMap = new Map();
+      for (const reply of replies) {
+        if (!replyMap.has(reply.parent_id)) {
+          replyMap.set(reply.parent_id, []);
+        }
+        replyMap.get(reply.parent_id).push(reply);
+      }
+
+      res.render("show", {
+        post: postResult.rows[0],
+        comments,
+        replyMap,
+        admin: req.session.admin || false
+      });
+    } catch (err) {
+      console.error("상세 보기 오류:", err);
+      res.status(500).send("게시글을 불러오는 중 오류가 발생했습니다.");
+    }
+  });
+
+  // 글쓰기 화면
+  app.get("/write", (req, res) => {
+    res.render("write", {
+      admin: req.session.admin || false,
+      error: null
+    });
+  });
+
+  // 글 등록
+  app.post("/write", async (req, res) => {
+    try {
+      const { title, content, author_name, edit_password } = req.body;
+
+      const safeTitle = String(title || "").trim();
+      const safeContentHtml = String(content || "").trim();
+
+      if (!safeTitle || !safeContentHtml) {
+        return res.render("write", {
+          admin: req.session.admin || false,
+          error: "제목과 내용을 모두 입력해주세요."
+        });
+      }
+
+      const safeAuthor = req.session.admin
+        ? "관리자"
+        : (author_name && String(author_name).trim() ? String(author_name).trim() : "익명");
+
+      let passwordHash = null;
+
+      if (!req.session.admin) {
+        const safePassword = String(edit_password || "").trim();
+
+        if (!safePassword) {
+          return res.render("write", {
+            admin: req.session.admin || false,
+            error: "수정 비밀번호를 입력해주세요."
+          });
+        }
+
+        passwordHash = await bcrypt.hash(safePassword, 10);
+      }
+
+      const plainTextContent = stripHtml(safeContentHtml);
+
+      await pool.query(
+        `INSERT INTO posts (title, content, content_html, author_name, edit_password_hash)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [safeTitle, plainTextContent, safeContentHtml, safeAuthor, passwordHash]
+      );
+
+      res.redirect("/");
+    } catch (err) {
+      console.error("글 등록 오류:", err);
+      res.render("write", {
+        admin: req.session.admin || false,
+        error: "글 등록 중 오류가 발생했습니다."
+      });
+    }
+  });
+
+  // 수정 화면
+  app.get("/edit/:id", async (req, res) => {
+    try {
+      const result = await pool.query(
+        "SELECT * FROM posts WHERE id = $1",
+        [req.params.id]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).send("게시글을 찾을 수 없습니다.");
+      }
+
+      res.render("edit", {
+        post: result.rows[0],
+        admin: req.session.admin || false,
+        error: null
+      });
+    } catch (err) {
+      console.error("글 수정 화면 오류:", err);
+      res.status(500).send("수정 화면을 불러오는 중 오류가 발생했습니다.");
+    }
+  });
+
+  // 수정 처리
+  app.post("/edit/:id", async (req, res) => {
+    try {
+      const { title, content, author_name, edit_password } = req.body;
+
+      const result = await pool.query(
+        "SELECT * FROM posts WHERE id = $1",
+        [req.params.id]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).send("게시글을 찾을 수 없습니다.");
+      }
+
+      const post = result.rows[0];
+
+      const safeTitle = String(title || "").trim();
+      const safeContentHtml = String(content || "").trim();
+
+      if (!safeTitle || !safeContentHtml) {
+        return res.render("edit", {
+          post,
+          admin: req.session.admin || false,
+          error: "제목과 내용을 입력해주세요."
+        });
+      }
+
+      const safeAuthor = req.session.admin
+        ? "관리자"
+        : (author_name && String(author_name).trim() ? String(author_name).trim() : "익명");
+
+      if (!req.session.admin) {
+        const safePassword = String(edit_password || "").trim();
+
+        if (!safePassword) {
+          return res.render("edit", {
+            post,
+            admin: req.session.admin || false,
+            error: "수정 비밀번호를 입력해주세요."
+          });
+        }
+
+        const ok = await bcrypt.compare(
+          safePassword,
+          post.edit_password_hash || ""
+        );
+
+        if (!ok) {
+          return res.render("edit", {
+            post,
+            admin: req.session.admin || false,
+            error: "수정 비밀번호가 올바르지 않습니다."
+          });
+        }
+      }
+
+      const plainTextContent = stripHtml(safeContentHtml);
+
+      await pool.query(
+        `UPDATE posts
+         SET title = $1, content = $2, content_html = $3, author_name = $4
+         WHERE id = $5`,
+        [safeTitle, plainTextContent, safeContentHtml, safeAuthor, req.params.id]
+      );
+
+      res.redirect(`/post/${req.params.id}`);
+    } catch (err) {
+      console.error("글 수정 오류:", err);
+      res.status(500).send("글 수정 중 오류가 발생했습니다.");
+    }
+  });
+
+  // 관리자 로그인
+  app.get("/login", (req, res) => {
+    res.render("login", { error: null });
+  });
+
+  app.post("/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.render("login", {
+          error: "아이디와 비밀번호를 입력해주세요."
+        });
+      }
+
+      const result = await pool.query(
+        "SELECT * FROM admins WHERE username = $1",
+        [username]
+      );
+
+      if (result.rows.length === 0) {
+        return res.render("login", {
+          error: "아이디가 틀렸습니다."
+        });
+      }
+
+      const adminUser = result.rows[0];
+      const ok = await bcrypt.compare(password, adminUser.password_hash);
+
+      if (!ok) {
+        return res.render("login", {
+          error: "비밀번호가 틀렸습니다."
+        });
+      }
+
+      req.session.admin = true;
+      req.session.adminId = adminUser.id;
+      req.session.adminUsername = adminUser.username;
+
+      res.redirect("/");
+    } catch (err) {
+      console.error("로그인 오류:", err);
+      res.status(500).send("로그인 중 오류가 발생했습니다.");
+    }
+  });
+
+  // 로그아웃
+  app.post("/logout", (req, res) => {
+    req.session.destroy(() => {
+      res.redirect("/");
+    });
+  });
+
+  // 창 닫을 때 로그아웃 시도
+  app.post("/logout-beacon", (req, res) => {
+    req.session.destroy(() => {
+      res.status(204).end();
+    });
+  });
+
+  // 관리자만 삭제
+  app.post("/delete/:id", requireAdmin, async (req, res) => {
+    try {
+      await pool.query("DELETE FROM posts WHERE id = $1", [req.params.id]);
+      res.redirect("/");
+    } catch (err) {
+      console.error("삭제 오류:", err);
+      res.status(500).send("삭제 중 오류가 발생했습니다.");
+    }
+  });
+
+  // 관리자만 댓글 작성
+  app.post("/comment/:postId", requireAdmin, async (req, res) => {
+    try {
+      const { content } = req.body;
+
+      if (!content || !String(content).trim()) {
+        return res.redirect(`/post/${req.params.postId}`);
+      }
+
+      await pool.query(
+        `INSERT INTO comments (post_id, content, author_name, parent_id)
+         VALUES ($1, $2, '관리자', NULL)`,
+        [req.params.postId, String(content).trim()]
+      );
+
+      res.redirect(`/post/${req.params.postId}`);
+    } catch (err) {
+      console.error("댓글 작성 오류:", err);
+      res.status(500).send("댓글 작성 중 오류가 발생했습니다.");
+    }
+  });
+
+  // 관리자만 답글 작성
+  app.post("/reply/:postId/:commentId", requireAdmin, async (req, res) => {
+    try {
+      const { content } = req.body;
+
+      if (!content || !String(content).trim()) {
+        return res.redirect(`/post/${req.params.postId}`);
+      }
+
+      await pool.query(
+        `INSERT INTO comments (post_id, content, author_name, parent_id)
+         VALUES ($1, $2, '관리자', $3)`,
+        [req.params.postId, String(content).trim(), req.params.commentId]
+      );
+
+      res.redirect(`/post/${req.params.postId}`);
+    } catch (err) {
+      console.error("답글 작성 오류:", err);
+      res.status(500).send("답글 작성 중 오류가 발생했습니다.");
+    }
+  });
+
+  // 관리자 비밀번호 변경
+  app.get("/change-password", requireAdmin, (req, res) => {
+    res.render("change-password", {
+      error: null,
+      success: null
+    });
+  });
+
+  app.post("/change-password", requireAdmin, async (req, res) => {
+    try {
+      const { currentPassword, newPassword, confirmPassword } = req.body;
+
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        return res.render("change-password", {
+          error: "모든 값을 입력해주세요.",
+          success: null
+        });
+      }
+
+      if (newPassword.length < 4) {
+        return res.render("change-password", {
+          error: "새 비밀번호는 4자 이상이어야 합니다.",
+          success: null
+        });
+      }
+
+      if (newPassword !== confirmPassword) {
+        return res.render("change-password", {
+          error: "새 비밀번호와 확인 비밀번호가 일치하지 않습니다.",
+          success: null
+        });
+      }
+
+      const result = await pool.query(
+        "SELECT * FROM admins WHERE id = $1",
+        [req.session.adminId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).send("관리자 계정을 찾을 수 없습니다.");
+      }
+
+      const adminUser = result.rows[0];
+      const currentOk = await bcrypt.compare(
+        currentPassword,
+        adminUser.password_hash
+      );
+
+      if (!currentOk) {
+        return res.render("change-password", {
+          error: "현재 비밀번호가 일치하지 않습니다.",
+          success: null
+        });
+      }
+
+      const newHash = await bcrypt.hash(newPassword, 10);
+
+      await pool.query(
+        "UPDATE admins SET password_hash = $1 WHERE id = $2",
+        [newHash, req.session.adminId]
+      );
+
+      return res.render("change-password", {
+        error: null,
+        success: "비밀번호가 즉시 변경되었습니다."
+      });
+    } catch (err) {
+      console.error("비밀번호 변경 오류:", err);
+      res.status(500).send("비밀번호 변경 중 오류가 발생했습니다.");
+    }
+  });
+
+  app.get("/health", async (req, res) => {
+    try {
+      await pool.query("SELECT 1");
+      res.status(200).json({ ok: true });
+    } catch (err) {
+      console.error("헬스체크 오류:", err);
+      res.status(500).json({ ok: false });
+    }
+  });
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 }
 
-.comments-section form {
-  margin-top: 12px;
-  margin-bottom: 16px;
-}
-
-.comments-section textarea {
-  width: 100%;
-  box-sizing: border-box;
-  resize: vertical;
-}
-
-.comment-item {
-  margin-top: 16px;
-}
-
-.comment-meta,
-.reply-meta {
-  margin-bottom: 6px;
-}
-
-.reply-list {
-  margin-top: 10px;
-}
-
-.reply-item {
-  margin-top: 10px;
-  padding-left: 12px;
-}
+startServer().catch((err) => {
+  console.error("Failed to bootstrap app:", err);
+  process.exit(1);
+});
