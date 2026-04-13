@@ -70,7 +70,27 @@ body {
 .list-top {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 16px;
   margin-bottom: 16px;
+}
+
+.search-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  max-width: 540px;
+  margin-left: auto;
+}
+
+.search-input {
+  margin: 0;
+  flex: 1;
+}
+
+.search-btn {
+  white-space: nowrap;
 }
 
 .board-table {
@@ -83,6 +103,7 @@ body {
   border-bottom: 1px solid #e5ebe6;
   padding: 14px 10px;
   text-align: center;
+  vertical-align: top;
 }
 
 .board-table th {
@@ -281,6 +302,34 @@ textarea {
   font-weight: bold;
 }
 
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.page-link {
+  display: inline-block;
+  min-width: 18px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #d6dfd8;
+  background: #fff;
+  color: #506d60;
+  text-decoration: none;
+  font-weight: bold;
+  text-align: center;
+}
+
+.page-link.active {
+  background: #879a89;
+  color: white;
+  border-color: #879a89;
+}
+
 @media (max-width: 700px) {
   .page-title {
     font-size: 30px;
@@ -288,7 +337,9 @@ textarea {
 
   .top-actions,
   .bottom-btns,
-  .list-top {
+  .list-top,
+  .search-form,
+  .pagination {
     flex-direction: column;
     align-items: stretch;
   }
@@ -297,5 +348,9 @@ textarea {
   .board-table td {
     font-size: 14px;
     padding: 10px 6px;
+  }
+
+  .page-link {
+    text-align: center;
   }
 }
