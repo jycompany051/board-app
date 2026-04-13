@@ -36,6 +36,13 @@
       <input type="hidden" name="content" id="contentInput">
 
       <div class="bottom-btns">
+        <% if (admin) { %>
+          <label class="notice-toggle">
+            <input type="checkbox" name="is_notice">
+            <span>공지글</span>
+          </label>
+        <% } %>
+
         <button type="submit" class="btn">등록</button>
         <a href="/" class="btn cancel">취소</a>
       </div>
