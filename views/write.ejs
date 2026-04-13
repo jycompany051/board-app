@@ -23,8 +23,13 @@
     <% } %>
 
     <form method="post" action="/write" class="form-card" onsubmit="return prepareSubmit();">
-      <label class="label">이름 또는 닉네임</label>
-      <input type="text" name="author_name" placeholder="이름 또는 닉네임" />
+      <% if (!admin) { %>
+        <label class="label">이름 또는 닉네임</label>
+        <input type="text" name="author_name" placeholder="이름 또는 닉네임" />
+      <% } else { %>
+        <label class="label">작성자</label>
+        <input type="text" value="관리자" disabled />
+      <% } %>
 
       <label class="label">제목</label>
       <input type="text" name="title" placeholder="제목을 입력하세요" required />
