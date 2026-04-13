@@ -124,6 +124,10 @@ body {
   font-size: 16px;
 }
 
+.notice-row td {
+  background: #f4f6f1;
+}
+
 .title-cell {
   text-align: left;
   word-break: break-word;
@@ -346,38 +350,38 @@ textarea {
   border-color: #879a89;
 }
 
-.notice-toggle {
-  position: relative;
-  display: inline-flex;
+.notice-check-row {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  min-width: 86px;
-  padding: 12px 18px;
-  border-radius: 12px;
-  background: #fff;
-  color: #506d60;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 16px 18px;
   border: 1px solid #d6dfd8;
-  font-weight: bold;
-  cursor: pointer;
+  border-radius: 14px;
+  background: #f8faf7;
   box-sizing: border-box;
 }
 
-.notice-toggle input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-  width: 0;
-  height: 0;
-  margin: 0;
+.notice-check-text {
+  color: #61766a;
+  line-height: 1.6;
 }
 
-.notice-toggle input:checked + span {
+.notice-check-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
   color: #506d60;
+  flex-shrink: 0;
 }
 
-.notice-toggle:has(input:checked) {
-  background: #edf3ee;
-  border-color: #879a89;
+.notice-check-right input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
 }
 
 @media (max-width: 700px) {
@@ -394,7 +398,8 @@ textarea {
   .list-top,
   .list-top-actions,
   .search-form,
-  .pagination {
+  .pagination,
+  .notice-check-row {
     flex-direction: column;
     align-items: stretch;
   }
@@ -406,8 +411,7 @@ textarea {
   .search-btn,
   .write-btn,
   .page-link,
-  .btn,
-  .notice-toggle {
+  .btn {
     text-align: center;
   }
 
@@ -432,5 +436,9 @@ textarea {
   .comment-card,
   .reply-card {
     padding: 18px;
+  }
+
+  .notice-check-right {
+    justify-content: flex-end;
   }
 }
