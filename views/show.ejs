@@ -30,6 +30,7 @@
     <h1 class="page-title">상담문의</h1>
   </div>
 
+  <!-- 기존 상세 -->
   <div class="detail-card">
 
     <h2 class="detail-title"><%= post.title %></h2>
@@ -59,56 +60,57 @@
 
   </div>
 
+  <!-- ✅ 댓글 영역 (기존 카드 스타일 그대로 사용) -->
   <div class="detail-card">
-    <h3 class="detail-title">댓글</h3>
+
+    <h2 class="detail-title">댓글</h2>
 
     <% if (admin) { %>
-      <form action="/comment/<%= post.id %>" method="POST">
-        <textarea
-          name="content"
-          placeholder="댓글을 입력하세요"
-          required
-          style="width:100%; min-height:90px; padding:12px; margin-top:12px; margin-bottom:12px; box-sizing:border-box; font:inherit;"
-        ></textarea>
+      <div class="form-card">
+        <form action="/comment/<%= post.id %>" method="POST">
+          <textarea name="content" placeholder="댓글을 입력하세요" required></textarea>
 
-        <div class="bottom-btns">
-          <button type="submit" class="btn">댓글 등록</button>
-        </div>
-      </form>
+          <div class="bottom-btns">
+            <button type="submit" class="btn">댓글 등록</button>
+          </div>
+        </form>
+      </div>
     <% } %>
 
     <% if (comments && comments.length > 0) { %>
       <% comments.forEach(function(comment) { %>
-        <div style="margin-top:20px; padding-top:20px; border-top:1px solid #e5e7eb;">
-          <div class="detail-meta" style="margin-bottom:10px;">
+
+        <div class="detail-card">
+
+          <div class="detail-meta">
             <span>작성자: <%= comment.author_name %></span>
             <span>등록일: <%= new Date(comment.created_at).toLocaleString("ko-KR") %></span>
           </div>
 
-          <div class="detail-content" style="margin-bottom:12px;">
+          <div class="detail-content">
             <%= comment.content %>
           </div>
 
           <% if (admin) { %>
-            <form action="/reply/<%= post.id %>/<%= comment.id %>" method="POST">
-              <textarea
-                name="content"
-                placeholder="답글을 입력하세요"
-                required
-                style="width:100%; min-height:72px; padding:12px; margin-bottom:12px; box-sizing:border-box; font:inherit;"
-              ></textarea>
+            <div class="form-card">
+              <form action="/reply/<%= post.id %>/<%= comment.id %>" method="POST">
+                <textarea name="content" placeholder="답글을 입력하세요" required></textarea>
 
-              <div class="bottom-btns">
-                <button type="submit" class="btn">답글 등록</button>
-              </div>
-            </form>
+                <div class="bottom-btns">
+                  <button type="submit" class="btn">답글 등록</button>
+                </div>
+              </form>
+            </div>
           <% } %>
 
+          <!-- 답글 -->
           <% const replies = replyMap.get(comment.id) || []; %>
           <% if (replies.length > 0) { %>
             <% replies.forEach(function(reply) { %>
-              <div style="margin-top:14px; margin-left:20px; padding:16px; border-top:1px solid #f0f0f0;">
-                <div class="detail-meta" style="margin-bottom:8px;">
+
+              <div class="detail-card">
+
+                <div class="detail-meta">
                   <span>작성자: <%= reply.author_name %></span>
                   <span>등록일: <%= new Date(reply.created_at).toLocaleString("ko-KR") %></span>
                 </div>
@@ -116,16 +118,19 @@
                 <div class="detail-content">
                   <%= reply.content %>
                 </div>
+
               </div>
+
             <% }) %>
           <% } %>
+
         </div>
+
       <% }) %>
     <% } else { %>
-      <div class="detail-content" style="margin-top:12px;">
-        등록된 댓글이 없습니다.
-      </div>
+      <div class="detail-content">등록된 댓글이 없습니다.</div>
     <% } %>
+
   </div>
 
 </div>
