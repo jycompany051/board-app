@@ -13,8 +13,8 @@ const PORT = process.env.PORT || 10000;
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
+app.use(express.json({ limit: "5mb" }));
 app.use("/public", express.static(path.join(__dirname, "public")));
 
 const redisClient = createClient({
@@ -50,11 +50,37 @@ async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS posts (
       id SERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
-      content TEXT NOT NULL,
-      author_name TEXT DEFAULT '익명',
+      title TEXT,
+      content TEXT,
+      author_name TEXT,
+      edit_password_hash TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
+  `);
+
+  // 기존 배포본과 컬럼 차이 자동 보정
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS title TEXT`);
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS content TEXT`);
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS author_name TEXT DEFAULT '익명'`);
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS edit_password_hash TEXT`);
+
+  // 혹시 title/content가 비어 있고 예전 컬럼이 있으면 최소 보정
+  await pool.query(`
+    UPDATE posts
+    SET title = COALESCE(NULLIF(title, ''), '제목 없음')
+    WHERE title IS NULL
+  `);
+
+  await pool.query(`
+    UPDATE posts
+    SET content = COALESCE(content, '')
+    WHERE content IS NULL
+  `);
+
+  await pool.query(`
+    UPDATE posts
+    SET author_name = COALESCE(NULLIF(author_name, ''), '익명')
+    WHERE author_name IS NULL
   `);
 
   const adminCheck = await pool.query(
@@ -124,12 +150,12 @@ async function startServer() {
 
   app.post("/write", async (req, res) => {
     try {
-      const { title, content, author_name } = req.body;
+      const { title, content, author_name, edit_password } = req.body;
 
-      if (!title || !content) {
+      if (!title || !content || !edit_password) {
         return res.render("write", {
           admin: req.session.admin || false,
-          error: "제목과 내용을 모두 입력해주세요."
+          error: "제목, 내용, 수정 비밀번호를 모두 입력해주세요."
         });
       }
 
@@ -139,17 +165,20 @@ async function startServer() {
         author_name && String(author_name).trim()
           ? String(author_name).trim()
           : "익명";
+      const safePassword = String(edit_password).trim();
 
-      if (!safeTitle || !safeContent) {
+      if (!safeTitle || !safeContent || !safePassword) {
         return res.render("write", {
           admin: req.session.admin || false,
-          error: "제목과 내용을 모두 입력해주세요."
+          error: "제목, 내용, 수정 비밀번호를 모두 입력해주세요."
         });
       }
 
+      const passwordHash = await bcrypt.hash(safePassword, 10);
+
       await pool.query(
-        "INSERT INTO posts (title, content, author_name) VALUES ($1, $2, $3)",
-        [safeTitle, safeContent, safeAuthor]
+        "INSERT INTO posts (title, content, author_name, edit_password_hash) VALUES ($1, $2, $3, $4)",
+        [safeTitle, safeContent, safeAuthor, passwordHash]
       );
 
       res.redirect("/");
@@ -159,6 +188,80 @@ async function startServer() {
         admin: req.session.admin || false,
         error: "글 등록 중 오류가 발생했습니다."
       });
+    }
+  });
+
+  // 게시글 수정 화면
+  app.get("/edit/:id", async (req, res) => {
+    try {
+      const result = await pool.query("SELECT * FROM posts WHERE id = $1", [req.params.id]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).send("게시글을 찾을 수 없습니다.");
+      }
+
+      res.render("edit", {
+        post: result.rows[0],
+        error: null
+      });
+    } catch (err) {
+      console.error("글 수정 화면 오류:", err);
+      res.status(500).send("수정 화면을 불러오는 중 오류가 발생했습니다.");
+    }
+  });
+
+  // 게시글 수정 처리
+  app.post("/edit/:id", async (req, res) => {
+    try {
+      const { title, content, author_name, edit_password } = req.body;
+
+      const result = await pool.query("SELECT * FROM posts WHERE id = $1", [req.params.id]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).send("게시글을 찾을 수 없습니다.");
+      }
+
+      const post = result.rows[0];
+
+      if (!edit_password) {
+        return res.render("edit", {
+          post,
+          error: "수정 비밀번호를 입력해주세요."
+        });
+      }
+
+      const ok = await bcrypt.compare(String(edit_password), post.edit_password_hash || "");
+
+      if (!ok) {
+        return res.render("edit", {
+          post,
+          error: "수정 비밀번호가 올바르지 않습니다."
+        });
+      }
+
+      const safeTitle = String(title || "").trim();
+      const safeContent = String(content || "").trim();
+      const safeAuthor =
+        author_name && String(author_name).trim()
+          ? String(author_name).trim()
+          : "익명";
+
+      if (!safeTitle || !safeContent) {
+        return res.render("edit", {
+          post,
+          error: "제목과 내용을 입력해주세요."
+        });
+      }
+
+      await pool.query(
+        "UPDATE posts SET title = $1, content = $2, author_name = $3 WHERE id = $4",
+        [safeTitle, safeContent, safeAuthor, req.params.id]
+      );
+
+      res.redirect("/");
+    } catch (err) {
+      console.error("글 수정 오류:", err);
+      res.status(500).send("글 수정 중 오류가 발생했습니다.");
     }
   });
 
