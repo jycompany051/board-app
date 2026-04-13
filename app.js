@@ -32,6 +32,11 @@ const pool = new Pool({
     : false
 });
 
+app.use((req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
+
 async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS admins (
@@ -67,6 +72,13 @@ async function initDb() {
   }
 }
 
+function requireAdmin(req, res, next) {
+  if (!req.session.admin) {
+    return res.status(403).send("관리자만 접근할 수 있습니다.");
+  }
+  next();
+}
+
 async function startServer() {
   await redisClient.connect();
   await initDb();
@@ -87,7 +99,6 @@ async function startServer() {
     })
   );
 
-  // 메인 = 후기 목록
   app.get("/", async (req, res) => {
     try {
       const result = await pool.query(
@@ -104,7 +115,6 @@ async function startServer() {
     }
   });
 
-  // 글쓰기 화면
   app.get("/write", (req, res) => {
     res.render("write", {
       admin: req.session.admin || false,
@@ -112,7 +122,6 @@ async function startServer() {
     });
   });
 
-  // 글 등록
   app.post("/write", async (req, res) => {
     try {
       const { title, content, author_name } = req.body;
@@ -153,12 +162,10 @@ async function startServer() {
     }
   });
 
-  // 관리자 로그인 화면
   app.get("/login", (req, res) => {
     res.render("login", { error: null });
   });
 
-  // 관리자 로그인
   app.post("/login", async (req, res) => {
     try {
       const { username, password } = req.body;
@@ -200,20 +207,20 @@ async function startServer() {
     }
   });
 
-  // 로그아웃
   app.post("/logout", (req, res) => {
     req.session.destroy(() => {
       res.redirect("/");
     });
   });
 
-  // 글 삭제
-  app.post("/delete/:id", async (req, res) => {
-    try {
-      if (!req.session.admin) {
-        return res.status(403).send("관리자만 삭제할 수 있습니다.");
-      }
+  app.post("/logout-beacon", (req, res) => {
+    req.session.destroy(() => {
+      res.status(204).end();
+    });
+  });
 
+  app.post("/delete/:id", requireAdmin, async (req, res) => {
+    try {
       await pool.query("DELETE FROM posts WHERE id = $1", [req.params.id]);
       res.redirect("/");
     } catch (err) {
@@ -222,25 +229,15 @@ async function startServer() {
     }
   });
 
-  // 비밀번호 변경 화면
-  app.get("/change-password", (req, res) => {
-    if (!req.session.admin) {
-      return res.status(403).send("관리자만 접근할 수 있습니다.");
-    }
-
+  app.get("/change-password", requireAdmin, (req, res) => {
     res.render("change-password", {
       error: null,
       success: null
     });
   });
 
-  // 비밀번호 즉시 변경
-  app.post("/change-password", async (req, res) => {
+  app.post("/change-password", requireAdmin, async (req, res) => {
     try {
-      if (!req.session.admin || !req.session.adminId) {
-        return res.status(403).send("관리자만 접근할 수 있습니다.");
-      }
-
       const { currentPassword, newPassword, confirmPassword } = req.body;
 
       if (!currentPassword || !newPassword || !confirmPassword) {
@@ -303,7 +300,6 @@ async function startServer() {
     }
   });
 
-  // 헬스체크
   app.get("/health", async (req, res) => {
     try {
       await pool.query("SELECT 1");
