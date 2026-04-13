@@ -165,8 +165,8 @@ async function startServer() {
           p.author_name,
           p.created_at,
           p.checked_by_admin,
-          COUNT(CASE WHEN c.parent_id IS NULL THEN 1 END)::int AS comment_count,
-          COUNT(CASE WHEN c.parent_id IS NOT NULL THEN 1 END)::int AS reply_count
+          COUNT(CASE WHEN c.id IS NOT NULL AND c.parent_id IS NULL THEN 1 END)::int AS comment_count,
+          COUNT(CASE WHEN c.id IS NOT NULL AND c.parent_id IS NOT NULL THEN 1 END)::int AS reply_count
         FROM posts p
         LEFT JOIN comments c ON c.post_id = p.id
         GROUP BY p.id
@@ -540,6 +540,21 @@ async function startServer() {
     } catch (err) {
       console.error("답글 작성 오류:", err);
       res.status(500).send("답글 작성 중 오류가 발생했습니다.");
+    }
+  });
+
+  // 관리자만 댓글 삭제
+  app.post("/comment-delete/:postId/:commentId", requireAdmin, async (req, res) => {
+    try {
+      await pool.query(
+        "DELETE FROM comments WHERE id = $1 AND post_id = $2",
+        [req.params.commentId, req.params.postId]
+      );
+
+      res.redirect(`/post/${req.params.postId}`);
+    } catch (err) {
+      console.error("댓글 삭제 오류:", err);
+      res.status(500).send("댓글 삭제 중 오류가 발생했습니다.");
     }
   });
 
