@@ -156,7 +156,8 @@ async function startServer() {
           p.title,
           p.author_name,
           p.created_at,
-          COUNT(c.id)::int AS comment_count
+          COUNT(CASE WHEN c.parent_id IS NULL THEN 1 END)::int AS comment_count,
+          COUNT(CASE WHEN c.parent_id IS NOT NULL THEN 1 END)::int AS reply_count
         FROM posts p
         LEFT JOIN comments c ON c.post_id = p.id
         GROUP BY p.id
