@@ -37,6 +37,20 @@ app.use((req, res, next) => {
   next();
 });
 
+function stripHtml(html) {
+  return String(html || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function requireAdmin(req, res, next) {
+  if (!req.session.admin) {
+    return res.status(403).send("관리자만 접근할 수 있습니다.");
+  }
+  next();
+}
+
 async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS admins (
@@ -55,6 +69,17 @@ async function initDb() {
       content_html TEXT,
       author_name TEXT,
       edit_password_hash TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS comments (
+      id SERIAL PRIMARY KEY,
+      post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+      content TEXT NOT NULL,
+      author_name TEXT NOT NULL DEFAULT '관리자',
+      parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -104,22 +129,13 @@ async function initDb() {
   }
 }
 
-function requireAdmin(req, res, next) {
-  if (!req.session.admin) {
-    return res.status(403).send("관리자만 접근할 수 있습니다.");
-  }
-  next();
-}
-
 async function startServer() {
   await redisClient.connect();
   await initDb();
 
   app.use(
     session({
-      store: new RedisStore({
-        client: redisClient
-      }),
+      store: new RedisStore({ client: redisClient }),
       secret: process.env.SESSION_SECRET || "change-this-secret",
       resave: false,
       saveUninitialized: false,
@@ -131,11 +147,21 @@ async function startServer() {
     })
   );
 
+  // 목록
   app.get("/", async (req, res) => {
     try {
-      const result = await pool.query(
-        "SELECT * FROM posts ORDER BY id DESC"
-      );
+      const result = await pool.query(`
+        SELECT
+          p.id,
+          p.title,
+          p.author_name,
+          p.created_at,
+          COUNT(c.id)::int AS comment_count
+        FROM posts p
+        LEFT JOIN comments c ON c.post_id = p.id
+        GROUP BY p.id
+        ORDER BY p.id DESC
+      `);
 
       res.render("index", {
         posts: result.rows,
@@ -147,6 +173,49 @@ async function startServer() {
     }
   });
 
+  // 상세
+  app.get("/post/:id", async (req, res) => {
+    try {
+      const postResult = await pool.query(
+        "SELECT * FROM posts WHERE id = $1",
+        [req.params.id]
+      );
+
+      if (postResult.rows.length === 0) {
+        return res.status(404).send("게시글을 찾을 수 없습니다.");
+      }
+
+      const commentsResult = await pool.query(
+        `SELECT * FROM comments
+         WHERE post_id = $1
+         ORDER BY COALESCE(parent_id, id), parent_id NULLS FIRST, id ASC`,
+        [req.params.id]
+      );
+
+      const comments = commentsResult.rows.filter((c) => !c.parent_id);
+      const replies = commentsResult.rows.filter((c) => c.parent_id);
+
+      const replyMap = new Map();
+      for (const reply of replies) {
+        if (!replyMap.has(reply.parent_id)) {
+          replyMap.set(reply.parent_id, []);
+        }
+        replyMap.get(reply.parent_id).push(reply);
+      }
+
+      res.render("show", {
+        post: postResult.rows[0],
+        comments,
+        replyMap,
+        admin: req.session.admin || false
+      });
+    } catch (err) {
+      console.error("상세 보기 오류:", err);
+      res.status(500).send("게시글을 불러오는 중 오류가 발생했습니다.");
+    }
+  });
+
+  // 글쓰기 화면
   app.get("/write", (req, res) => {
     res.render("write", {
       admin: req.session.admin || false,
@@ -154,6 +223,7 @@ async function startServer() {
     });
   });
 
+  // 글 등록
   app.post("/write", async (req, res) => {
     try {
       const { title, content, author_name, edit_password } = req.body;
@@ -167,16 +237,12 @@ async function startServer() {
 
       const safeTitle = String(title).trim();
       const safeContentHtml = String(content).trim();
-      const safeAuthor =
-        author_name && String(author_name).trim()
-          ? String(author_name).trim()
-          : "익명";
       const safePassword = String(edit_password).trim();
+      const safeAuthor = req.session.admin
+        ? "관리자"
+        : (author_name && String(author_name).trim() ? String(author_name).trim() : "익명");
 
-      const plainTextContent = safeContentHtml
-        .replace(/<[^>]*>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
+      const plainTextContent = stripHtml(safeContentHtml);
 
       if (!safeTitle || !safeContentHtml || !safePassword) {
         return res.render("write", {
@@ -203,9 +269,13 @@ async function startServer() {
     }
   });
 
+  // 수정 화면
   app.get("/edit/:id", async (req, res) => {
     try {
-      const result = await pool.query("SELECT * FROM posts WHERE id = $1", [req.params.id]);
+      const result = await pool.query(
+        "SELECT * FROM posts WHERE id = $1",
+        [req.params.id]
+      );
 
       if (result.rows.length === 0) {
         return res.status(404).send("게시글을 찾을 수 없습니다.");
@@ -213,6 +283,7 @@ async function startServer() {
 
       res.render("edit", {
         post: result.rows[0],
+        admin: req.session.admin || false,
         error: null
       });
     } catch (err) {
@@ -221,11 +292,15 @@ async function startServer() {
     }
   });
 
+  // 수정 처리
   app.post("/edit/:id", async (req, res) => {
     try {
       const { title, content, author_name, edit_password } = req.body;
 
-      const result = await pool.query("SELECT * FROM posts WHERE id = $1", [req.params.id]);
+      const result = await pool.query(
+        "SELECT * FROM posts WHERE id = $1",
+        [req.params.id]
+      );
 
       if (result.rows.length === 0) {
         return res.status(404).send("게시글을 찾을 수 없습니다.");
@@ -236,34 +311,36 @@ async function startServer() {
       if (!edit_password) {
         return res.render("edit", {
           post,
+          admin: req.session.admin || false,
           error: "수정 비밀번호를 입력해주세요."
         });
       }
 
-      const ok = await bcrypt.compare(String(edit_password), post.edit_password_hash || "");
+      const ok = await bcrypt.compare(
+        String(edit_password),
+        post.edit_password_hash || ""
+      );
 
       if (!ok) {
         return res.render("edit", {
           post,
+          admin: req.session.admin || false,
           error: "수정 비밀번호가 올바르지 않습니다."
         });
       }
 
       const safeTitle = String(title || "").trim();
       const safeContentHtml = String(content || "").trim();
-      const safeAuthor =
-        author_name && String(author_name).trim()
-          ? String(author_name).trim()
-          : "익명";
+      const safeAuthor = req.session.admin
+        ? "관리자"
+        : (author_name && String(author_name).trim() ? String(author_name).trim() : "익명");
 
-      const plainTextContent = safeContentHtml
-        .replace(/<[^>]*>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
+      const plainTextContent = stripHtml(safeContentHtml);
 
       if (!safeTitle || !safeContentHtml) {
         return res.render("edit", {
           post,
+          admin: req.session.admin || false,
           error: "제목과 내용을 입력해주세요."
         });
       }
@@ -275,13 +352,14 @@ async function startServer() {
         [safeTitle, plainTextContent, safeContentHtml, safeAuthor, req.params.id]
       );
 
-      res.redirect("/");
+      res.redirect(`/post/${req.params.id}`);
     } catch (err) {
       console.error("글 수정 오류:", err);
       res.status(500).send("글 수정 중 오류가 발생했습니다.");
     }
   });
 
+  // 관리자 로그인
   app.get("/login", (req, res) => {
     res.render("login", { error: null });
   });
@@ -327,18 +405,21 @@ async function startServer() {
     }
   });
 
+  // 로그아웃
   app.post("/logout", (req, res) => {
     req.session.destroy(() => {
       res.redirect("/");
     });
   });
 
+  // 창 닫을 때 로그아웃 시도
   app.post("/logout-beacon", (req, res) => {
     req.session.destroy(() => {
       res.status(204).end();
     });
   });
 
+  // 관리자만 삭제
   app.post("/delete/:id", requireAdmin, async (req, res) => {
     try {
       await pool.query("DELETE FROM posts WHERE id = $1", [req.params.id]);
@@ -349,6 +430,51 @@ async function startServer() {
     }
   });
 
+  // 관리자만 댓글 작성
+  app.post("/comment/:postId", requireAdmin, async (req, res) => {
+    try {
+      const { content } = req.body;
+
+      if (!content || !String(content).trim()) {
+        return res.redirect(`/post/${req.params.postId}`);
+      }
+
+      await pool.query(
+        `INSERT INTO comments (post_id, content, author_name, parent_id)
+         VALUES ($1, $2, '관리자', NULL)`,
+        [req.params.postId, String(content).trim()]
+      );
+
+      res.redirect(`/post/${req.params.postId}`);
+    } catch (err) {
+      console.error("댓글 작성 오류:", err);
+      res.status(500).send("댓글 작성 중 오류가 발생했습니다.");
+    }
+  });
+
+  // 관리자만 답글 작성
+  app.post("/reply/:postId/:commentId", requireAdmin, async (req, res) => {
+    try {
+      const { content } = req.body;
+
+      if (!content || !String(content).trim()) {
+        return res.redirect(`/post/${req.params.postId}`);
+      }
+
+      await pool.query(
+        `INSERT INTO comments (post_id, content, author_name, parent_id)
+         VALUES ($1, $2, '관리자', $3)`,
+        [req.params.postId, String(content).trim(), req.params.commentId]
+      );
+
+      res.redirect(`/post/${req.params.postId}`);
+    } catch (err) {
+      console.error("답글 작성 오류:", err);
+      res.status(500).send("답글 작성 중 오류가 발생했습니다.");
+    }
+  });
+
+  // 관리자 비밀번호 변경
   app.get("/change-password", requireAdmin, (req, res) => {
     res.render("change-password", {
       error: null,
