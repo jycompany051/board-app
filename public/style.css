@@ -274,3 +274,39 @@ textarea {
     padding: 10px 6px;
   }
 }
+
+/* 댓글/답글 기능용 최소 스타일 추가 */
+/* 기존 디자인을 건드리지 않기 위해 최대한 중립적으로만 추가 */
+
+.comments-section {
+  margin-top: 24px;
+}
+
+.comments-section form {
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+
+.comments-section textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.comment-item {
+  margin-top: 16px;
+}
+
+.comment-meta,
+.reply-meta {
+  margin-bottom: 6px;
+}
+
+.reply-list {
+  margin-top: 10px;
+}
+
+.reply-item {
+  margin-top: 10px;
+  padding-left: 12px;
+}
