@@ -64,8 +64,29 @@ body {
 }
 
 .top-bar-column .btn,
-.top-bar-column .inline-form {
-  width: 140px;
+.top-bar-column .inline-form,
+.top-bar-column .admin-status {
+  width: 160px;
+}
+
+.admin-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 11px 16px;
+  border: 1px solid #cbd8d0;
+  border-radius: 12px;
+  background: #edf4ee;
+  color: #395046;
+  font-weight: 700;
+}
+
+.admin-inline {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .list-box {
@@ -386,7 +407,8 @@ textarea {
   }
 
   .top-bar-column .btn,
-  .top-bar-column .inline-form {
+  .top-bar-column .inline-form,
+  .top-bar-column .admin-status {
     width: auto;
   }
 
@@ -414,7 +436,6 @@ textarea {
     width: 100px;
   }
 
-  .review-foot,
   .detail-meta,
   .comment-head {
     flex-direction: column;
