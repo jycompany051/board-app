@@ -1,6 +1,6 @@
 const express = require("express");
 const session = require("express-session");
-const RedisStore = require("connect-redis").default;
+const RedisStore = require("connect-redis");
 const { createClient } = require("redis");
 const { Pool } = require("pg");
 const bcrypt = require("bcryptjs");
