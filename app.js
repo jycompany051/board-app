@@ -142,7 +142,7 @@ async function startServer() {
       cookie: {
         secure: false,
         httpOnly: true,
-        maxAge: 1000 * 60 * 60 * 24
+        maxAge: 1000 * 60 * 60 * 24 * 7
       }
     })
   );
@@ -228,30 +228,36 @@ async function startServer() {
     try {
       const { title, content, author_name, edit_password } = req.body;
 
-      if (!title || !content || !edit_password) {
+      const safeTitle = String(title || "").trim();
+      const safeContentHtml = String(content || "").trim();
+
+      if (!safeTitle || !safeContentHtml) {
         return res.render("write", {
           admin: req.session.admin || false,
-          error: "제목, 내용, 수정 비밀번호를 모두 입력해주세요."
+          error: "제목과 내용을 모두 입력해주세요."
         });
       }
 
-      const safeTitle = String(title).trim();
-      const safeContentHtml = String(content).trim();
-      const safePassword = String(edit_password).trim();
       const safeAuthor = req.session.admin
         ? "관리자"
         : (author_name && String(author_name).trim() ? String(author_name).trim() : "익명");
 
-      const plainTextContent = stripHtml(safeContentHtml);
+      let passwordHash = null;
 
-      if (!safeTitle || !safeContentHtml || !safePassword) {
-        return res.render("write", {
-          admin: req.session.admin || false,
-          error: "제목, 내용, 수정 비밀번호를 모두 입력해주세요."
-        });
+      if (!req.session.admin) {
+        const safePassword = String(edit_password || "").trim();
+
+        if (!safePassword) {
+          return res.render("write", {
+            admin: req.session.admin || false,
+            error: "수정 비밀번호를 입력해주세요."
+          });
+        }
+
+        passwordHash = await bcrypt.hash(safePassword, 10);
       }
 
-      const passwordHash = await bcrypt.hash(safePassword, 10);
+      const plainTextContent = stripHtml(safeContentHtml);
 
       await pool.query(
         `INSERT INTO posts (title, content, content_html, author_name, edit_password_hash)
@@ -308,34 +314,8 @@ async function startServer() {
 
       const post = result.rows[0];
 
-      if (!edit_password) {
-        return res.render("edit", {
-          post,
-          admin: req.session.admin || false,
-          error: "수정 비밀번호를 입력해주세요."
-        });
-      }
-
-      const ok = await bcrypt.compare(
-        String(edit_password),
-        post.edit_password_hash || ""
-      );
-
-      if (!ok) {
-        return res.render("edit", {
-          post,
-          admin: req.session.admin || false,
-          error: "수정 비밀번호가 올바르지 않습니다."
-        });
-      }
-
       const safeTitle = String(title || "").trim();
       const safeContentHtml = String(content || "").trim();
-      const safeAuthor = req.session.admin
-        ? "관리자"
-        : (author_name && String(author_name).trim() ? String(author_name).trim() : "익명");
-
-      const plainTextContent = stripHtml(safeContentHtml);
 
       if (!safeTitle || !safeContentHtml) {
         return res.render("edit", {
@@ -344,6 +324,37 @@ async function startServer() {
           error: "제목과 내용을 입력해주세요."
         });
       }
+
+      const safeAuthor = req.session.admin
+        ? "관리자"
+        : (author_name && String(author_name).trim() ? String(author_name).trim() : "익명");
+
+      if (!req.session.admin) {
+        const safePassword = String(edit_password || "").trim();
+
+        if (!safePassword) {
+          return res.render("edit", {
+            post,
+            admin: req.session.admin || false,
+            error: "수정 비밀번호를 입력해주세요."
+          });
+        }
+
+        const ok = await bcrypt.compare(
+          safePassword,
+          post.edit_password_hash || ""
+        );
+
+        if (!ok) {
+          return res.render("edit", {
+            post,
+            admin: req.session.admin || false,
+            error: "수정 비밀번호가 올바르지 않습니다."
+          });
+        }
+      }
+
+      const plainTextContent = stripHtml(safeContentHtml);
 
       await pool.query(
         `UPDATE posts
