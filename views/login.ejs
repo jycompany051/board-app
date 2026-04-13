@@ -1,5 +1,40 @@
-<form method="POST">
-<input name="username">
-<input name="password" type="password">
-<button>로그인</button>
-</form>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 로그인</title>
+<link rel="stylesheet" href="/public/style.css">
+</head>
+<body>
+
+<div class="page narrow">
+  <div class="top-actions top-actions-right">
+    <a href="/" class="btn">목록</a>
+  </div>
+
+  <div class="page-title-wrap">
+    <h1 class="page-title">상담문의</h1>
+  </div>
+
+  <div class="login-card">
+    <h2>관리자 로그인</h2>
+
+    <% if (error) { %>
+      <div class="error-box"><%= error %></div>
+    <% } %>
+
+    <form action="/login" method="POST">
+      <input type="text" name="username" placeholder="관리자 아이디" required>
+      <input type="password" name="password" placeholder="관리자 비밀번호" required>
+
+      <div class="bottom-btns">
+        <a href="/" class="btn cancel">취소</a>
+        <button type="submit" class="btn">로그인</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+</body>
+</html>
