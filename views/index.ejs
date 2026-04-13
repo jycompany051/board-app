@@ -27,14 +27,24 @@
 
   <div class="page-title-wrap">
     <h1 class="page-title">상담 후기글</h1>
-    <p class="page-desc">상담 후기 글을 확인할 수 있는 게시판입니다.</p>
+    <p class="page-desc">상담 후기 글을 확인 할 수 있는 게시판 입니다.</p>
   </div>
 
   <div class="list-card">
 
     <div class="list-top">
-      <span>전체 : <%= posts.length %></span>
-      <a href="/write" class="btn">글쓰기</a>
+      <span>전체 : <%= totalCount %></span>
+
+      <form action="/" method="GET" class="search-form">
+        <input
+          type="text"
+          name="q"
+          value="<%= q || '' %>"
+          placeholder="검색어"
+          class="search-input"
+        >
+        <button type="submit" class="btn search-btn">검색하기</button>
+      </form>
     </div>
 
     <table class="board-table">
@@ -48,6 +58,12 @@
       </thead>
 
       <tbody>
+        <% if (posts.length === 0) { %>
+          <tr>
+            <td colspan="4" class="empty-cell">등록된 글이 없습니다.</td>
+          </tr>
+        <% } %>
+
         <% posts.forEach(post => { %>
           <tr>
             <td><%= post.id %></td>
@@ -86,6 +102,37 @@
         <% }) %>
       </tbody>
     </table>
+
+    <% if (pagination && pagination.totalPages > 1) { %>
+      <div class="pagination">
+        <% if (pagination.hasPrev) { %>
+          <a
+            href="/?page=<%= pagination.prevPage %><%= q ? '&q=' + encodeURIComponent(q) : '' %>"
+            class="page-link"
+          >
+            이전
+          </a>
+        <% } %>
+
+        <% for (let i = pagination.startPage; i <= pagination.endPage; i++) { %>
+          <a
+            href="/?page=<%= i %><%= q ? '&q=' + encodeURIComponent(q) : '' %>"
+            class="page-link <%= i === pagination.currentPage ? 'active' : '' %>"
+          >
+            <%= i %>
+          </a>
+        <% } %>
+
+        <% if (pagination.hasNext) { %>
+          <a
+            href="/?page=<%= pagination.nextPage %><%= q ? '&q=' + encodeURIComponent(q) : '' %>"
+            class="page-link"
+          >
+            다음
+          </a>
+        <% } %>
+      </div>
+    <% } %>
 
   </div>
 </div>
