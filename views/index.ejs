@@ -3,18 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>이용후기</title>
+  <title>글 목록</title>
   <link rel="stylesheet" href="/public/style.css" />
 </head>
 <body>
   <div class="page">
-    <header class="hero">
-      <div class="hero-badge">REVIEW BOARD</div>
-      <h1>이용후기</h1>
-      <p>방문자들이 남긴 소중한 후기를 한눈에 확인해보세요.</p>
+    <header class="hero simple">
+      <h1>글 목록</h1>
+      <p>차분한 분위기에서 글을 읽고 남길 수 있는 공간입니다.</p>
 
       <div class="hero-actions">
-        <a class="btn primary" href="/write">후기 남기기</a>
+        <a class="btn primary" href="/write">글쓰기</a>
 
         <% if (admin) { %>
           <a class="btn" href="/change-password">비밀번호 변경</a>
@@ -29,15 +28,10 @@
     </header>
 
     <section class="review-section">
-      <div class="section-head">
-        <h2>최신 후기</h2>
-        <span><%= posts.length %>개의 후기</span>
-      </div>
-
       <% if (posts.length === 0) { %>
         <div class="empty-box">
-          <strong>아직 등록된 후기가 없습니다.</strong>
-          <p>첫 번째 후기를 남겨보세요.</p>
+          <strong>등록된 글이 없습니다.</strong>
+          <p>첫 글을 남겨보세요.</p>
         </div>
       <% } %>
 
@@ -69,5 +63,23 @@
       </div>
     </section>
   </div>
+
+  <% if (admin) { %>
+    <script>
+      const logoutBeacon = () => {
+        try {
+          navigator.sendBeacon("/logout-beacon");
+        } catch (e) {}
+      };
+
+      window.addEventListener("beforeunload", logoutBeacon);
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") {
+          logoutBeacon();
+        }
+      });
+    </script>
+  <% } %>
 </body>
 </html>
