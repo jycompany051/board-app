@@ -9,6 +9,7 @@ require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 10000;
+const PAGE_SIZE = 10;
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -49,6 +50,32 @@ function requireAdmin(req, res, next) {
     return res.status(403).send("관리자만 접근할 수 있습니다.");
   }
   next();
+}
+
+function parsePage(value) {
+  const page = Number.parseInt(value, 10);
+  if (!Number.isFinite(page) || page < 1) return 1;
+  return page;
+}
+
+function buildPagination(currentPage, totalPages) {
+  const safeTotalPages = Math.max(1, totalPages);
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), safeTotalPages);
+
+  const blockSize = 5;
+  const blockStart = Math.floor((safeCurrentPage - 1) / blockSize) * blockSize + 1;
+  const blockEnd = Math.min(blockStart + blockSize - 1, safeTotalPages);
+
+  return {
+    currentPage: safeCurrentPage,
+    totalPages: safeTotalPages,
+    hasPrev: safeCurrentPage > 1,
+    hasNext: safeCurrentPage < safeTotalPages,
+    prevPage: safeCurrentPage - 1,
+    nextPage: safeCurrentPage + 1,
+    startPage: blockStart,
+    endPage: blockEnd
+  };
 }
 
 async function initDb() {
@@ -122,6 +149,21 @@ async function initDb() {
     WHERE checked_by_admin IS NULL
   `);
 
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_posts_created_id
+    ON posts (id DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_posts_checked_by_admin
+    ON posts (checked_by_admin)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_comments_post_parent_id
+    ON comments (post_id, parent_id, id)
+  `);
+
   const adminCheck = await pool.query(
     "SELECT * FROM admins WHERE username = $1",
     ["admin"]
@@ -155,42 +197,99 @@ async function startServer() {
     })
   );
 
-  // 목록
+  // 목록 + 검색 + 페이지네이션
   app.get("/", async (req, res) => {
     try {
-      const result = await pool.query(`
+      const q = String(req.query.q || "").trim();
+      const page = parsePage(req.query.page);
+      const offset = (page - 1) * PAGE_SIZE;
+
+      const whereParts = [];
+      const params = [];
+
+      if (q) {
+        params.push(`%${q}%`);
+        whereParts.push(`
+          (
+            p.title ILIKE $${params.length}
+            OR p.content ILIKE $${params.length}
+            OR p.author_name ILIKE $${params.length}
+          )
+        `);
+      }
+
+      const whereSql = whereParts.length > 0
+        ? `WHERE ${whereParts.join(" AND ")}`
+        : "";
+
+      const countResult = await pool.query(
+        `
+        SELECT COUNT(*)::int AS total_count
+        FROM posts p
+        ${whereSql}
+        `,
+        params
+      );
+
+      const totalCount = countResult.rows[0]?.total_count || 0;
+      const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+      const safePage = Math.min(page, totalPages);
+      const safeOffset = (safePage - 1) * PAGE_SIZE;
+
+      const listParams = [...params, PAGE_SIZE, safeOffset];
+      const limitIndex = params.length + 1;
+      const offsetIndex = params.length + 2;
+
+      const result = await pool.query(
+        `
         SELECT
           p.id,
           p.title,
           p.author_name,
           p.created_at,
           p.checked_by_admin,
-          COUNT(CASE WHEN c.id IS NOT NULL AND c.parent_id IS NULL THEN 1 END)::int AS comment_count,
-          COUNT(CASE WHEN c.id IS NOT NULL AND c.parent_id IS NOT NULL THEN 1 END)::int AS reply_count
+          (
+            SELECT COUNT(*)::int
+            FROM comments c1
+            WHERE c1.post_id = p.id
+              AND c1.parent_id IS NULL
+          ) AS comment_count
         FROM posts p
-        LEFT JOIN comments c ON c.post_id = p.id
-        GROUP BY p.id
+        ${whereSql}
         ORDER BY p.id DESC
-      `);
+        LIMIT $${limitIndex} OFFSET $${offsetIndex}
+        `,
+        listParams
+      );
 
-      const replyPreviewResult = await pool.query(`
-        SELECT
-          c.post_id,
-          c.id,
-          c.content,
-          c.created_at
-        FROM comments c
-        WHERE c.parent_id IS NOT NULL
-        ORDER BY c.post_id DESC, c.id ASC
-      `);
+      const postIds = result.rows.map((post) => post.id);
 
-      const replyPreviewMap = new Map();
+      let replyPreviewMap = new Map();
 
-      for (const reply of replyPreviewResult.rows) {
-        if (!replyPreviewMap.has(reply.post_id)) {
-          replyPreviewMap.set(reply.post_id, []);
+      if (postIds.length > 0) {
+        const replyPreviewResult = await pool.query(
+          `
+          SELECT
+            c.post_id,
+            c.id,
+            c.content,
+            c.created_at
+          FROM comments c
+          WHERE c.parent_id IS NOT NULL
+            AND c.post_id = ANY($1::int[])
+          ORDER BY c.post_id DESC, c.id ASC
+          `,
+          [postIds]
+        );
+
+        replyPreviewMap = new Map();
+
+        for (const reply of replyPreviewResult.rows) {
+          if (!replyPreviewMap.has(reply.post_id)) {
+            replyPreviewMap.set(reply.post_id, []);
+          }
+          replyPreviewMap.get(reply.post_id).push(reply);
         }
-        replyPreviewMap.get(reply.post_id).push(reply);
       }
 
       const posts = result.rows.map((post) => ({
@@ -200,7 +299,10 @@ async function startServer() {
 
       res.render("index", {
         posts,
-        admin: req.session.admin || false
+        admin: req.session.admin || false,
+        q,
+        totalCount,
+        pagination: buildPagination(safePage, totalPages)
       });
     } catch (err) {
       console.error("글 목록 오류:", err);
