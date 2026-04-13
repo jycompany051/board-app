@@ -2,47 +2,55 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>게시판</title>
+  <title>이용후기</title>
   <link rel="stylesheet" href="/public/style.css" />
 </head>
 <body>
-  <h1>게시판</h1>
+  <div class="page">
+    <header class="hero">
+      <h1>이용후기</h1>
+      <p>방문자들이 남긴 소중한 후기를 확인해보세요.</p>
 
-  <div class="top-bar">
-    <a class="btn" href="/write">글쓰기</a>
+      <div class="hero-actions">
+        <a class="btn primary" href="/write">후기 남기기</a>
 
-    <% if (admin) { %>
-      <a class="btn" href="/change-password">비밀번호 변경</a>
+        <% if (admin) { %>
+          <a class="btn" href="/change-password">비밀번호 변경</a>
+          <form method="post" action="/logout" class="inline-form">
+            <button type="submit" class="btn danger">로그아웃</button>
+          </form>
+        <% } else { %>
+          <a class="btn" href="/login">관리자 로그인</a>
+        <% } %>
+      </div>
+    </header>
 
-      <form method="post" action="/logout" class="inline-form">
-        <button type="submit" class="btn">로그아웃</button>
-      </form>
-    <% } else { %>
-      <a class="btn" href="/login">관리자 로그인</a>
-    <% } %>
-  </div>
-
-  <hr />
-
-  <h2>글 목록</h2>
-
-  <% if (posts.length === 0) { %>
-    <p>등록된 글이 없습니다.</p>
-  <% } %>
-
-  <% posts.forEach(post => { %>
-    <div class="post">
-      <h3><%= post.title %></h3>
-      <p><%= post.content %></p>
-      <small><%= post.created_at %></small>
-
-      <% if (admin) { %>
-        <form method="post" action="/delete/<%= post.id %>">
-          <button type="submit">삭제</button>
-        </form>
+    <section class="review-list">
+      <% if (posts.length === 0) { %>
+        <div class="empty-box">아직 등록된 후기가 없습니다.</div>
       <% } %>
-    </div>
-    <hr />
-  <% }) %>
+
+      <% posts.forEach(post => { %>
+        <article class="review-card">
+          <div class="review-head">
+            <h2><%= post.title %></h2>
+            <span class="author"><%= post.author_name || "익명" %></span>
+          </div>
+
+          <p class="review-content"><%= post.content %></p>
+
+          <div class="review-foot">
+            <span><%= new Date(post.created_at).toLocaleString("ko-KR") %></span>
+
+            <% if (admin) { %>
+              <form method="post" action="/delete/<%= post.id %>">
+                <button type="submit" class="btn danger small">삭제</button>
+              </form>
+            <% } %>
+          </div>
+        </article>
+      <% }) %>
+    </section>
+  </div>
 </body>
 </html>
