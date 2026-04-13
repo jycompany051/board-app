@@ -94,9 +94,12 @@ body {
 
 .review-content {
   margin: 14px 0 18px;
-  white-space: pre-line;
   line-height: 1.8;
   color: #34463b;
+}
+
+.review-content p {
+  margin: 0 0 12px;
 }
 
 .review-foot {
@@ -106,6 +109,12 @@ body {
   gap: 12px;
   color: #6b7d72;
   font-size: 14px;
+}
+
+.action-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .form-card {
@@ -154,6 +163,25 @@ textarea:focus {
 textarea {
   min-height: 220px;
   resize: vertical;
+}
+
+#editor {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ql-toolbar.ql-snow {
+  border: 1px solid #cad9d0 !important;
+  border-bottom: none !important;
+  border-radius: 12px 12px 0 0;
+}
+
+.ql-container.ql-snow {
+  border: 1px solid #cad9d0 !important;
+  border-radius: 0 0 12px 12px;
+  min-height: 240px;
+  font-size: 16px;
 }
 
 .btn {
